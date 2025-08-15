@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 import pandas as pd
 from services.offline_cache import offline_cache
 from services.error_handler import error_handler, APIError
+from bs4 import BeautifulSoup
 from typing import List, Dict, Any, Optional, Union
 
 
@@ -14,7 +15,7 @@ class RealMarketAPI:
     """Real market API integration with multiple data sources - NO MOCK DATA"""
     
     def __init__(self):
-        self.enam_base_url = "https://api.data.gov.in/resource"
+        self.enam_base_url = "https://api.data.gov.in/resource/35985678-0d79-46b4-9ed6-6f13308a1d24"
         self.agmarknet_url = "https://agmarknet.gov.in/SearchCmmMkt.aspx"
         self.cache_expiry = 6  # 6 hours for market data
     
@@ -26,22 +27,22 @@ class RealMarketAPI:
             if cached_data:
                 return cached_data
             
-            # e-NAM API endpoint
             enam_api_key = os.getenv("ENAM_API_KEY")
             if not enam_api_key:
                 print("e-NAM API key not found")
                 return None
             
+            # Correct API params
             params = {
                 "api-key": enam_api_key,
                 "format": "json",
-                "commodity": commodity,
-                "state": state,
+                "filters[Commodity]": commodity,
+                "filters[State]": state,
                 "limit": 100
             }
             
             response = requests.get(
-                f"{self.enam_base_url}/enam-prices",
+                self.enam_base_url,
                 params=params,
                 timeout=10
             )
@@ -52,29 +53,63 @@ class RealMarketAPI:
                 if prices:
                     offline_cache.set(cache_key, prices, self.cache_expiry)
                     return prices
-            
-            return None
-                
+            return None   
+        
         except Exception as e:
             print(f"e-NAM API error: {str(e)}")
             return None
-    
-    def get_agmarknet_prices(self, commodity: str, market: str = "") -> Optional[List[Dict]]:
+        
+
+    def get_agmarknet_prices(self, commodity_id: str, state_id: str, market_id: str = "0",
+                             start_date: str = "01-Jan-2020", end_date: str = "01-Jan-2025",
+                             commodity_name: str = "", state_name: str = "") -> Optional[List[Dict]]:
         """Get prices from AgMarkNet - returns None if unavailable"""
         try:
-            cache_key = f"agmarknet_prices_{commodity}_{market}"
-            cached_data = offline_cache.get(cache_key)
+            cache_key = f"agmarknet_prices_{commodity_id}_{state_id}_{market_id}"
+            cached_data = self._get_cache(cache_key)
             if cached_data:
                 return cached_data
             
-            # AgMarkNet scraping or API (if available)
-            prices = self._scrape_agmarknet_data(commodity, market)
+            # Build URL for direct browser access
+            url = (
+                f"{self.agmarknet_url}?Tx_Commodity={commodity_id}"
+                f"&Tx_State={state_id}&Tx_Market={market_id}"
+                f"&DateFrom={start_date}&DateTo={end_date}"
+                f"&Fr_Date={start_date}&To_Date={end_date}&Tx_Trend=2"
+                f"&Tx_CommodityHead={commodity_name}&Tx_StateHead={state_name}"
+                f"&Tx_DistrictHead=--Select--&Tx_MarketHead=--Select--"
+            )
+
+            response = requests.get(url, timeout=10)
+            if response.status_code != 200:
+                print(f"AgMarkNet request failed: {response.status_code}")
+                return None
+
+            soup = BeautifulSoup(response.text, "html.parser")
+            table = soup.find("table", {"id": "ctl00_ContentPlaceHolder1_GridView1"})
+            if not table:
+                return None
+
+            prices = []
+            rows = table.find_all("tr")[1:]  # skip header
+            for row in rows:
+                cols = row.find_all("td")
+                prices.append({
+                    "commodity": cols[0].text.strip(),
+                    "market": cols[1].text.strip(),
+                    "variety": cols[2].text.strip(),
+                    "min_price": cols[3].text.strip(),
+                    "max_price": cols[4].text.strip(),
+                    "modal_price": cols[5].text.strip(),
+                    "date": cols[6].text.strip(),
+                })
+
             if prices:
-                offline_cache.set(cache_key, prices, self.cache_expiry)
+                self._set_cache(cache_key, prices)
                 return prices
-            
+
             return None
-            
+
         except Exception as e:
             print(f"AgMarkNet error: {str(e)}")
             return None

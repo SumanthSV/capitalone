@@ -13,7 +13,7 @@ load_dotenv()
 class WeatherService:
     def __init__(self):
         self.api_key = os.getenv("OPENWEATHER_API_KEY")
-        self.base_url = "http://api.openweathermap.org/data/2.5"
+        self.base_url = "https://api.agromonitoring.com/agro/1.0/"
         
         if not self.api_key:
             raise APIError("OpenWeather API key not found", "WEATHER_API_KEY_MISSING")

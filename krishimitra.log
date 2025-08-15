@@ -33,3 +33,9 @@ requests.exceptions.HTTPError: 401 Client Error: Unauthorized for url: http://ap
 2025-08-15 02:59:04,961 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
 2025-08-15 02:59:04,961 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: all-MiniLM-L6-v2
 2025-08-15 02:59:10,660 - chromadb.telemetry.product.posthog - ERROR - Failed to send telemetry event CollectionQueryEvent: capture() takes 1 positional argument but 3 were given
+2025-08-15 22:37:20,739 - services.task_queue - INFO - Task queue started
+2025-08-15 22:37:20,742 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 22:40:07,914 - services.task_queue - INFO - Task queue stopped
+2025-08-15 22:59:28,298 - services.task_queue - INFO - Task queue started
+2025-08-15 22:59:28,301 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 23:00:31,351 - services.task_queue - INFO - Task queue stopped

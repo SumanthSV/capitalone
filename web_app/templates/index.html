@@ -232,6 +232,12 @@
                     <button class="tab-button" onclick="switchTab('community')">
                         👥 Community
                     </button>
+                    <button class="tab-button" onclick="switchTab('schemes')">
+                        🏛️ Schemes
+                    </button>
+                    <button class="tab-button" onclick="switchTab('sensors')">
+                        📊 Sensors
+                    </button>
                 </div>
                 
                 <!-- AI Chat Tab (Main Interface) -->
@@ -252,6 +258,9 @@
                                         <li>🌾 "What's the wheat price in Punjab?" - Live market prices</li>
                                         <li>🦠 Disease diagnosis from crop photos</li>
                                         <li>🌤️ Weather-based farming decisions</li>
+                                        <li>🧠 Advanced reasoning for complex decisions</li>
+                                        <li>🏛️ Government schemes and loan recommendations</li>
+                                        <li>📊 Real-time IoT sensor analysis</li>
                                     </ul>
                                     <p>Just ask me anything in your preferred language!</p>
                                 </div>
@@ -274,13 +283,13 @@
                     
                     <!-- Unified Input Area -->
                     <div class="unified-input-container">
-                        <form id="unifiedForm" enctype="multipart/form-data">
+                    <div id="unifiedForm" class="query-form">
                             <div class="input-row">
                                 <div class="main-input-group">
                                     <textarea 
                                         id="unifiedQuery" 
                                         name="text" 
-                                        placeholder="Ask me anything about farming... (e.g., 'Can I irrigate my wheat now?', 'What's the rice price in Punjab?', 'Should I sell my cotton today?')"
+                                        placeholder="Ask me anything about farming... Try: 'Should I sell now or wait?', 'What government schemes apply to me?', 'Analyze my sensor data'"
                                         rows="3"
                                     ></textarea>
                                     
@@ -308,7 +317,7 @@
                             <input type="hidden" id="sensorData" name="sensor_data">
                             <input type="hidden" id="locationInput" name="location">
                             <input type="hidden" id="languageInput" name="language" value="hindi">
-                        </form>
+                        </div>
                         
                         <!-- Quick Actions -->
                         <div class="quick-actions">
@@ -350,6 +359,11 @@
                         </div>
                         <button type="button" onclick="refreshSensorData()" class="refresh-btn">🔄 Refresh</button>
                     </div>
+                    
+                    <!-- Enhanced Sensor Data Display -->
+                    <div id="enhancedSensorData" class="enhanced-sensor-display" style="display: none;">
+                        <!-- Enhanced sensor data will be populated here -->
+                    </div>
                 </div>
                 
                 <!-- Community Tab -->
@@ -376,6 +390,46 @@
                         
                         <div class="community-posts" id="communityPosts">
                             <div class="loading">Loading community posts...</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Government Schemes Tab -->
+                <div id="schemesTab" class="tab-content">
+                    <div class="schemes-section">
+                        <div class="schemes-header">
+                            <h3>🏛️ Government Schemes</h3>
+                            <button class="refresh-schemes-btn" onclick="loadGovernmentSchemes()">
+                                🔄 Refresh
+                            </button>
+                        </div>
+                        
+                        <div class="schemes-info">
+                            <p>Personalized government schemes, subsidies, and loan programs based on your farming profile.</p>
+                        </div>
+                        
+                        <div class="government-schemes" id="governmentSchemes">
+                            <div class="loading">Loading applicable schemes...</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Enhanced Sensors Tab -->
+                <div id="sensorsTab" class="tab-content">
+                    <div class="sensors-section">
+                        <div class="sensors-header">
+                            <h3>📊 Smart Sensors</h3>
+                            <button class="refresh-sensors-btn" onclick="loadEnhancedSensorData()">
+                                🔄 Refresh Data
+                            </button>
+                        </div>
+                        
+                        <div class="sensors-info">
+                            <p>Real-time IoT sensor data with intelligent insights and alerts for your farm.</p>
+                        </div>
+                        
+                        <div class="enhanced-sensor-container" id="enhancedSensorContainer">
+                            <div class="loading">Loading sensor data...</div>
                         </div>
                     </div>
                 </div>
@@ -529,6 +583,7 @@
             // Add active class to clicked button
             event.target.classList.add('active');
         }
+        
     </script>
 </body>
 </html>

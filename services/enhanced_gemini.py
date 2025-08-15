@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from PIL import Image
 import json
 from typing import Dict, Any, Optional
+import asyncio
+from datetime import datetime
 try:
     from services.error_handler import error_handler, APIError
 except ImportError:

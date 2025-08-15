@@ -120,3 +120,116 @@ Traceback (most recent call last):
               ^^^^^^^^^^^^^^^^^
 AttributeError: module 'bcrypt' has no attribute '__about__'
 2025-08-15 17:33:51,724 - services.task_queue - INFO - Task queue stopped
+2025-08-15 19:24:00,976 - services.task_queue - INFO - Task queue started
+2025-08-15 19:24:00,978 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 19:29:08,973 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "S:\capitalone\project\venv\Lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-08-15 19:32:08,357 - services.task_queue - INFO - Task queue started
+2025-08-15 19:32:08,359 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 20:09:44,551 - services.task_queue - INFO - Task queue stopped
+2025-08-15 20:09:44,615 - services.task_queue - INFO - Task queue stopped
+2025-08-15 20:13:46,388 - services.task_queue - INFO - Task queue started
+2025-08-15 20:13:46,389 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 20:13:46,389 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 20:13:57,943 - services.task_queue - INFO - Task queue stopped
+2025-08-15 20:14:12,998 - services.task_queue - INFO - Task queue started
+2025-08-15 20:14:12,998 - services.task_queue - INFO - Task queue started
+2025-08-15 20:14:12,999 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 20:14:12,999 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 20:14:13,000 - services.task_queue - INFO - Task queue stopped
+2025-08-15 20:14:13,000 - services.task_queue - INFO - Task queue stopped
+2025-08-15 20:14:16,445 - services.task_queue - INFO - Task queue started
+2025-08-15 20:14:16,445 - services.task_queue - INFO - Task queue started
+2025-08-15 20:14:16,446 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 20:22:24,055 - services.task_queue - INFO - Task queue stopped
+2025-08-15 20:22:24,086 - services.task_queue - INFO - Task queue stopped
+2025-08-15 20:22:27,870 - services.task_queue - INFO - Task queue started
+2025-08-15 20:22:27,870 - services.task_queue - INFO - Task queue started
+2025-08-15 20:22:27,871 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 20:22:27,871 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 20:22:27,872 - services.task_queue - INFO - Task queue stopped
+2025-08-15 20:22:27,872 - services.task_queue - INFO - Task queue stopped
+2025-08-15 20:22:31,307 - services.task_queue - INFO - Task queue started
+2025-08-15 20:22:31,308 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 20:22:31,309 - services.task_queue - INFO - Task queue started
+2025-08-15 20:22:31,310 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 20:23:52,972 - services.task_queue - INFO - Task queue stopped
+2025-08-15 20:40:19,737 - services.task_queue - INFO - Task queue started
+2025-08-15 20:40:19,738 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 20:46:33,625 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "S:\capitalone\project\venv\Lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-08-15 21:33:27,497 - services.task_queue - INFO - Task queue stopped
+2025-08-15 22:29:52,759 - services.task_queue - INFO - Task queue started
+2025-08-15 22:29:52,760 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 22:31:43,431 - services.task_queue - INFO - Task queue stopped
+2025-08-15 22:33:26,020 - services.task_queue - INFO - Task queue started
+2025-08-15 22:33:26,022 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 22:34:46,510 - services.task_queue - INFO - Task queue stopped
+2025-08-15 23:03:14,113 - services.task_queue - INFO - Task queue started
+2025-08-15 23:03:14,115 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 23:04:14,040 - services.task_queue - INFO - Task queue stopped
+2025-08-15 23:06:28,140 - services.task_queue - INFO - Task queue started
+2025-08-15 23:06:28,141 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 23:09:51,939 - services.task_queue - INFO - Task queue stopped
+2025-08-15 23:09:56,323 - services.task_queue - INFO - Task queue started
+2025-08-15 23:09:56,325 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 23:11:02,775 - services.task_queue - INFO - Task queue stopped
+2025-08-15 23:11:06,325 - services.task_queue - INFO - Task queue started
+2025-08-15 23:11:06,326 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 23:11:24,031 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "S:\capitalone\project\venv\Lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-08-15 23:11:44,858 - services.task_queue - INFO - Task queue stopped
+2025-08-15 23:11:50,107 - services.task_queue - INFO - Task queue started
+2025-08-15 23:11:50,109 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 23:18:42,043 - services.task_queue - INFO - Task queue stopped
+2025-08-15 23:18:42,072 - services.task_queue - INFO - Task queue started
+2025-08-15 23:18:42,076 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 23:18:42,078 - services.task_queue - INFO - Task queue stopped
+2025-08-15 23:19:35,229 - services.task_queue - INFO - Task queue started
+2025-08-15 23:19:35,231 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 23:26:39,164 - services.task_queue - INFO - Task queue started
+2025-08-15 23:26:39,165 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 23:26:39,166 - services.task_queue - INFO - Task queue stopped
+2025-08-15 23:38:35,507 - services.task_queue - INFO - Task queue started
+2025-08-15 23:38:35,508 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 23:39:04,845 - services.task_queue - INFO - Task queue stopped
+2025-08-15 23:42:28,900 - services.task_queue - INFO - Task queue stopped
+2025-08-15 23:42:53,533 - services.task_queue - INFO - Task queue started
+2025-08-15 23:42:53,534 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 23:43:56,659 - services.task_queue - INFO - Task queue stopped
+2025-08-15 23:47:27,263 - services.task_queue - INFO - Task queue started
+2025-08-15 23:47:27,264 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 23:48:42,234 - services.task_queue - INFO - Task queue stopped
+2025-08-15 23:49:13,179 - services.task_queue - INFO - Task queue started
+2025-08-15 23:49:13,181 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 23:49:56,595 - services.task_queue - INFO - Task queue stopped
+2025-08-15 23:51:42,190 - services.task_queue - INFO - Task queue started
+2025-08-15 23:51:42,191 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 23:51:45,686 - services.task_queue - INFO - Task queue stopped
+2025-08-15 23:52:01,071 - services.task_queue - INFO - Task queue started
+2025-08-15 23:52:01,073 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 23:52:30,914 - services.task_queue - INFO - Task queue stopped
+2025-08-15 23:56:12,055 - services.task_queue - INFO - Task queue started
+2025-08-15 23:56:12,056 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 23:56:30,657 - services.task_queue - INFO - Task queue stopped
+2025-08-15 23:57:10,357 - services.task_queue - INFO - Task queue started
+2025-08-15 23:57:10,359 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 23:57:54,143 - services.task_queue - INFO - Task queue stopped
+2025-08-15 23:59:03,218 - services.task_queue - INFO - Task queue started
+2025-08-15 23:59:03,220 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-15 23:59:22,931 - services.task_queue - INFO - Task queue stopped
+2025-08-16 00:03:35,903 - services.task_queue - INFO - Task queue started
+2025-08-16 00:03:35,904 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-16 00:05:17,886 - services.task_queue - INFO - Task queue stopped

@@ -225,7 +225,10 @@ CRITICAL GUIDELINES:
 7. Never use generic advice - everything should be tailored to this specific farmer
 8. Explain WHY you're recommending something, not just WHAT to do
 9. Always consider the farmer's experience level and adjust complexity accordingly
-10. Respond in the same language the farmer used: {original_language}""")
+10. Respond in the same language the farmer used: {original_language}
+11. PROFIT FOCUS: Every recommendation should consider financial impact and ROI
+12. HUMAN-LIKE COMMUNICATION: Use phrases like "Based on your farm's history..." or "Given your wheat is in vegetative stage..."
+13. ACTIONABLE STEPS: Provide step-by-step instructions with specific timing and quantities""")
         
         # Farmer's personal context
         user_context = collected_data.get('user_context', {})
@@ -377,13 +380,14 @@ REMEMBER: You are their personal agricultural advisor who knows their farm intim
             # Profit optimization (highest priority)
             profit_insights = insights.get('profit_optimization', {})
             recommendations.extend(profit_insights.get('immediate_actions', []))
+            recommendations.extend(profit_insights.get('short_term_strategy', []))
             
             # Weather-based recommendations
             weather_insights = insights.get('weather', {})
             for impact in weather_insights.get('agricultural_impact', []):
                 recommendations.extend(impact.get('recommendations', []))
             
-            return recommendations[:6]  # Limit to top 6 most actionable recommendations
+            return recommendations[:8]  # Limit to top 8 most actionable recommendations
             
         except Exception as e:
             print(f"Recommendation extraction error: {str(e)}")

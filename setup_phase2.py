@@ -87,27 +87,27 @@ def create_pwa_icons():
                 f.write(f"# Placeholder icon {size}x{size}\n")
             print(f"📱 Created placeholder icon: {size}x{size}")
 
-def setup_service_worker():
-    """Set up service worker for PWA"""
-    from services.pwa_service import pwa_service
+# # def setup_service_worker():
+#     """Set up service worker for PWA"""
+#     # from services.pwa_service import pwa_service
     
-    # Generate service worker
-    sw_content = pwa_service.generate_service_worker()
-    with open("web_app/static/sw.js", "w") as f:
-        f.write(sw_content)
-    print("🔧 Generated service worker")
+#     # # Generate service worker
+#     # sw_content = pwa_service.generate_service_worker()
+#     with open("web_app/static/sw.js", "w") as f:
+#         f.write(sw_content)
+#     print("🔧 Generated service worker")
     
-    # Generate manifest
-    manifest = pwa_service.generate_manifest()
-    with open("web_app/static/manifest.json", "w") as f:
-        json.dump(manifest, f, indent=2)
-    print("📱 Generated PWA manifest")
+#     # Generate manifest
+#     manifest = pwa_service.generate_manifest()
+#     with open("web_app/static/manifest.json", "w") as f:
+#         json.dump(manifest, f, indent=2)
+#     print("📱 Generated PWA manifest")
     
-    # Generate offline page
-    offline_html = pwa_service.get_offline_page()
-    with open("web_app/static/offline.html", "w",encoding="utf-8") as f:
-        f.write(offline_html)
-    print("📄 Generated offline fallback page")
+#     # Generate offline page
+#     offline_html = pwa_service.get_offline_page()
+#     with open("web_app/static/offline.html", "w",encoding="utf-8") as f:
+#         f.write(offline_html)
+#     print("📄 Generated offline fallback page")
 
 def initialize_caches():
     """Initialize offline caches with essential data"""
@@ -196,7 +196,7 @@ CACHE_EXPIRY_HOURS=24
 OFFLINE_MODE=false
 
 # Language Configuration
-DEFAULT_LANGUAGE=hi
+DEFAULT_LANGUAGE=en
 
 # Phase 4: Advanced Features (Optional)
 ENAM_API_KEY=your_enam_api_key_here  # Market data
@@ -277,7 +277,7 @@ def main():
     # Create PWA assets
     print("\n📱 Setting up PWA assets...")
     create_pwa_icons()
-    setup_service_worker()
+    # setup_service_worker()
     
     # Initialize systems
     print("\n💾 Initializing offline systems...")

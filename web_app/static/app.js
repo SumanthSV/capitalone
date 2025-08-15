@@ -1,4 +1,6 @@
 // KrishiMitra - Unified AI Chat Application
+console.log('KrishiMitra JavaScript loaded');
+
 let currentUser = null;
 let authToken = null;
 let isProcessingQuery = false;
@@ -6,46 +8,160 @@ let chatHistory = [];
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM Content Loaded - initializing app');
     initializeApp();
 });
 
 function initializeApp() {
-    checkAuthStatus();
-    setupEventListeners();
+    console.log('initializeApp called');
+    setupEventListeners(); // Set up event listeners first
     updateOnlineStatus();
+    checkAuthStatus(); // Check auth after listeners are set up
     
     // Monitor online/offline status
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
+    
+    console.log('initializeApp completed');
 }
 
 function setupEventListeners() {
-    // Unified form submission
-    document.getElementById('unifiedForm').addEventListener('submit', handleUnifiedQuery);
+    console.log('Setting up event listeners - SIMPLE VERSION');
     
-    // Image upload button
-    document.getElementById('imageBtn').addEventListener('click', () => {
-        document.getElementById('imageInput').click();
-    });
-    
-    // Image file selection
-    document.getElementById('imageInput').addEventListener('change', handleImageSelection);
-    
-    // Voice button
-    document.getElementById('voiceBtn').addEventListener('click', handleVoiceInput);
-    
-    // Sensor button
-    document.getElementById('sensorBtn').addEventListener('click', toggleSensorData);
-    
-    // Enter key handling for textarea
-    document.getElementById('unifiedQuery').addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            if (!isProcessingQuery) {
-                handleUnifiedQuery(e);
-            }
+    // Wait a bit for DOM to be ready
+    setTimeout(() => {
+        // Set up submit button click
+        const submitBtn = document.getElementById('sendBtn');
+        if (submitBtn) {
+            console.log('Found submit button, adding click handler');
+            
+            submitBtn.onclick = function(e) {
+                console.log('SUBMIT BUTTON CLICKED!');
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Get the text
+                const textQuery = document.getElementById('unifiedQuery').value?.trim();
+                console.log('Text query:', textQuery);
+                
+                if (!textQuery) {
+                    alert('Please enter a question!');
+                    return false;
+                }
+                
+                // Call the submission handler directly
+                submitQuery(textQuery);
+                return false;
+            };
+            
+            console.log('Submit button handler attached successfully');
+        } else {
+            console.error('Submit button not found!');
         }
-    });
+        
+        // Set up Enter key on textarea
+        const textarea = document.getElementById('unifiedQuery');
+        if (textarea) {
+            textarea.onkeydown = function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    console.log('Enter key pressed');
+                    e.preventDefault();
+                    
+                    const textQuery = textarea.value?.trim();
+                    if (textQuery && !isProcessingQuery) {
+                        submitQuery(textQuery);
+                    }
+                }
+            };
+        }
+        
+        // Other button handlers
+        const imageBtn = document.getElementById('imageBtn');
+        if (imageBtn) {
+            imageBtn.onclick = () => {
+                document.getElementById('imageInput').click();
+            };
+        }
+        
+        const voiceBtn = document.getElementById('voiceBtn');
+        if (voiceBtn) {
+            voiceBtn.onclick = handleVoiceInput;
+        }
+        
+    }, 1000); // Give more time for DOM to be ready
+}
+
+// Simple, direct submission function
+async function submitQuery(textQuery) {
+    console.log('submitQuery called with:', textQuery);
+    
+    if (isProcessingQuery) {
+        alert('Please wait for the previous query to complete');
+        return;
+    }
+    
+    try {
+        isProcessingQuery = true;
+        disableInput();
+        showTypingIndicator();
+        
+        // Add user message to chat
+        addMessageToChat('user', textQuery);
+        
+        // Create form data
+        const formData = new FormData();
+        formData.append('text', textQuery);
+        formData.append('language', 'hindi');
+        
+        // Add image if selected
+        const imageInput = document.getElementById('imageInput');
+        if (imageInput.files[0]) {
+            formData.append('image', imageInput.files[0]);
+        }
+        
+        console.log('Sending API request to /api/unified-query');
+        
+        // Make API request
+        const response = await fetch('/api/unified-query', {
+            method: 'POST',
+            body: formData
+        });
+        
+        console.log('API response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('API result:', result);
+        
+        if (result.success) {
+            addMessageToChat('ai', result.response || 'Query processed successfully', {
+                confidence: result.confidence_score || 0.8
+            });
+            
+            // Clear the textarea
+            document.getElementById('unifiedQuery').value = '';
+            
+        } else {
+            addMessageToChat('ai', result.error || 'Sorry, there was an error processing your request', {
+                confidence: 0.1,
+                isError: true
+            });
+        }
+        
+    } catch (error) {
+        console.error('Error submitting query:', error);
+        addMessageToChat('ai', 'Network error: ' + error.message, {
+            confidence: 0.1,
+            isError: true
+        });
+    } finally {
+        isProcessingQuery = false;
+        enableInput();
+        hideTypingIndicator();
+    }
 }
 
 // Authentication Functions
@@ -68,7 +184,17 @@ function updateUserInterface() {
 }
 
 function showAuthModal() {
-    document.getElementById('authModal').style.display = 'flex';
+    // Make the modal non-blocking - allow users to interact with the app even without auth
+    const authModal = document.getElementById('authModal');
+    if (authModal) {
+        authModal.style.display = 'flex';
+        // Add a close button or allow clicking outside to dismiss
+        authModal.addEventListener('click', function(e) {
+            if (e.target === authModal) {
+                hideAuthModal();
+            }
+        });
+    }
 }
 
 function hideAuthModal() {
@@ -391,79 +517,178 @@ function displayUserContext(context) {
 
 // Main Query Processing
 async function handleUnifiedQuery(event) {
-    event.preventDefault();
-    
-    if (isProcessingQuery) {
-        showMessage('Please wait for your previous query to complete', 'warning');
-        return;
-    }
-    
-    const formData = new FormData(event.target);
-    const textQuery = formData.get('text')?.trim();
-    const imageFile = formData.get('image');
-    
-    if (!textQuery && !imageFile) {
-        showMessage('Please enter a question or upload an image', 'warning');
-        return;
-    }
-    
-    // Block further queries
-    isProcessingQuery = true;
-    disableInput();
-    showTypingIndicator();
-    
-    // Add user message to chat
-    if (textQuery) {
-        addMessageToChat('user', textQuery);
-    }
-    if (imageFile) {
-        addMessageToChat('user', `📷 Uploaded image: ${imageFile.name}`);
-    }
+    console.log('handleUnifiedQuery called', event);
     
     try {
+        if (event && typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
+        
+        if (isProcessingQuery) {
+            showMessage('Please wait for your previous query to complete', 'warning');
+            return;
+        }
+        
+        console.log('Processing query started...');
+        
+        // Get the form - handle both form submission and direct calls
+        let form;
+        if (event && event.target && event.target.tagName === 'FORM') {
+            form = event.target;
+        } else {
+            form = document.getElementById('unifiedForm');
+        }
+        
+        if (!form) {
+            console.error('Form not found!');
+            showMessage('Error: Form not found', 'error');
+            return;
+        }
+        
+        console.log('Form found, creating FormData...');
+        const formData = new FormData(form);
+        const textQuery = formData.get('text')?.trim() || document.getElementById('unifiedQuery').value?.trim();
+        const imageFile = formData.get('image') || document.getElementById('imageInput').files[0];
+        
+        console.log('Form data extracted:', { 
+            textQuery: textQuery || 'empty', 
+            imageFile: imageFile ? imageFile.name : 'none',
+            hasVoiceData: !!formData.get('voice_data'),
+            hasSensorData: !!formData.get('sensor_data')
+        });
+        
+        // Validate input
+        if (!textQuery && !imageFile) {
+            showMessage('Please enter a question or upload an image', 'warning');
+            return;
+        }
+        
+        // Block further queries
+        isProcessingQuery = true;
+        disableInput();
+        showTypingIndicator();
+        
+        console.log('Adding user message to chat...');
+        
+        // Add user message to chat
+        if (textQuery) {
+            addMessageToChat('user', textQuery);
+        }
+        if (imageFile) {
+            addMessageToChat('user', `📷 Uploaded image: ${imageFile.name}`);
+        }
+        
+        console.log('User message added, preparing API request...');
+        
+        // Ensure FormData has the text value
+        if (textQuery && !formData.has('text')) {
+            formData.set('text', textQuery);
+        }
+        
+        // Ensure FormData has the image file if selected
+        if (imageFile && !formData.has('image')) {
+            formData.set('image', imageFile);
+        }
+    
+    try {
+        console.log('Preparing to send API request...');
+        
         const headers = {};
         if (authToken) {
             headers['Authorization'] = `Bearer ${authToken}`;
+            console.log('Using authentication token');
+        } else {
+            console.log('No authentication token - using anonymous access');
         }
         
+        console.log('Sending request to /api/unified-query with form data:', formData);
+        
+        console.log('Sending request to API...');
         const response = await fetch('/api/unified-query', {
             method: 'POST',
             headers: headers,
             body: formData
         });
         
+        console.log('API response received - Status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+        
+        if (!response.ok) {
+            console.error('HTTP error:', response.status, response.statusText);
+            const errorText = await response.text();
+            console.error('Error response body:', errorText);
+            
+            addMessageToChat('ai', `Server error: ${response.status} ${response.statusText}. Please try again.`, {
+                confidence: 0.1,
+                isError: true
+            });
+            return;
+        }
+        
         const result = await response.json();
+        console.log('API response result:', result);
         
         if (result.success) {
+            console.log('Query processed successfully');
+            console.log('AI response:', result.response);
+            
             // Add AI response to chat
-            addMessageToChat('ai', result.response, {
-                confidence: result.confidence_score,
-                dataSources: result.data_sources,
-                recommendations: result.recommendations,
-                dataAvailability: result.data_availability,
-                followUpSuggestions: result.follow_up_suggestions
+            addMessageToChat('ai', result.response || 'I received your query and processed it successfully.', {
+                confidence: result.confidence_score || 0.8,
+                dataSources: result.data_sources || [],
+                recommendations: result.recommendations || [],
+                dataAvailability: result.data_availability || {},
+                followUpSuggestions: result.follow_up_suggestions || []
             });
             
+            console.log('AI response added to chat');
+            
             // Clear form
-            document.getElementById('unifiedForm').reset();
-            document.getElementById('sensorData').value = '';
-            document.getElementById('voiceData').value = '';
+            const form = document.getElementById('unifiedForm');
+            if (form) {
+                form.reset();
+            }
+            
+            // Clear additional data
+            const sensorDataInput = document.getElementById('sensorData');
+            const voiceDataInput = document.getElementById('voiceData');
+            
+            if (sensorDataInput) sensorDataInput.value = '';
+            if (voiceDataInput) voiceDataInput.value = '';
+            
+            console.log('Form cleared');
             
         } else {
-            addMessageToChat('ai', result.error || 'I apologize, but I encountered an error processing your request.', {
+            console.error('API returned error:', result.error);
+            const errorMessage = result.error || 'I apologize, but I encountered an error processing your request.';
+            addMessageToChat('ai', errorMessage, {
                 confidence: 0.1,
                 isError: true
             });
         }
         
     } catch (error) {
-        addMessageToChat('ai', 'I apologize, but I encountered a network error. Please check your connection and try again.', {
+        console.error('Network/fetch error:', error);
+        console.error('Error details:', error.stack);
+        const errorMessage = `I apologize, but I encountered a network error: ${error.message}. Please check your connection and try again.`;
+        addMessageToChat('ai', errorMessage, {
             confidence: 0.1,
             isError: true
         });
-        console.error('Query processing error:', error);
     } finally {
         // Re-enable input
+        console.log('Re-enabling input controls...');
+        isProcessingQuery = false;
+        enableInput();
+        hideTypingIndicator();
+        console.log('Query processing completed');
+    }
+    
+    } catch (outerError) {
+        console.error('Outer error in handleUnifiedQuery:', outerError);
+        showMessage('Unexpected error: ' + outerError.message, 'error');
+        
+        // Ensure we re-enable input even in case of outer errors
         isProcessingQuery = false;
         enableInput();
         hideTypingIndicator();
@@ -666,6 +891,67 @@ function getSensorData() {
 function setQuickQuery(query) {
     document.getElementById('unifiedQuery').value = query;
     document.getElementById('unifiedQuery').focus();
+}
+
+// Test function for debugging
+function testQuery() {
+    console.log('=== TEST QUERY DEBUG START ===');
+    const testQuestion = "What is the mandi price of rice in Karnataka";
+    
+    // Set the test question in the textarea
+    const queryInput = document.getElementById('unifiedQuery');
+    if (queryInput) {
+        queryInput.value = testQuestion;
+        console.log('Test question set in textarea:', testQuestion);
+    } else {
+        console.error('Query input textarea not found!');
+        return;
+    }
+    
+    // Get the form
+    const form = document.getElementById('unifiedForm');
+    if (!form) {
+        console.error('Form not found!');
+        showMessage('Error: Form not found', 'error');
+        return;
+    }
+    
+    console.log('Form found:', form);
+    console.log('Form action:', form.action);
+    console.log('Form method:', form.method);
+    console.log('Form enctype:', form.enctype);
+    
+    // Check if handleUnifiedQuery function exists
+    if (typeof handleUnifiedQuery !== 'function') {
+        console.error('handleUnifiedQuery function not found!');
+        return;
+    }
+    
+    console.log('Calling handleUnifiedQuery directly with synthetic event...');
+    
+    // Create a synthetic event that mimics form submission
+    const syntheticEvent = {
+        preventDefault: function() { 
+            console.log('preventDefault called on synthetic event'); 
+        },
+        stopPropagation: function() { 
+            console.log('stopPropagation called on synthetic event'); 
+        },
+        target: form,
+        type: 'submit',
+        isTrusted: false
+    };
+    
+    try {
+        console.log('About to call handleUnifiedQuery...');
+        handleUnifiedQuery(syntheticEvent);
+        console.log('handleUnifiedQuery called successfully');
+    } catch (error) {
+        console.error('Error calling handleUnifiedQuery:', error);
+        showMessage('Error in handleUnifiedQuery: ' + error.message, 'error');
+    }
+    
+    console.log('=== TEST QUERY DEBUG END ===');
 }
 
 // Tab switching
