@@ -13,14 +13,15 @@ load_dotenv()
 class WeatherService:
     def __init__(self):
         self.api_key = os.getenv("OPENWEATHER_API_KEY")
-        self.base_url = "https://api.agromonitoring.com/agro/1.0/"
+        self.base_url = "http://api.openweathermap.org/data/2.5"
         
         if not self.api_key:
-            raise APIError("OpenWeather API key not found", "WEATHER_API_KEY_MISSING")
+            print("Warning: OpenWeather API key not found. Weather features will be limited.")
+            self.api_key = None
     
     def get_current_weather(self, location: str) -> Optional[Dict]:
         """Get current weather - returns None if unavailable"""
-        if not location.strip():
+        if not location.strip() or not self.api_key:
             return None
             
         cache_key = f"weather_current_{location.lower()}"
@@ -65,7 +66,7 @@ class WeatherService:
     
     def get_weather_forecast(self, location: str, days: int = 7) -> Optional[List[Dict]]:
         """Get weather forecast - returns None if unavailable"""
-        if not location.strip():
+        if not location.strip() or not self.api_key:
             return None
             
         cache_key = f"weather_forecast_{location.lower()}_{days}"

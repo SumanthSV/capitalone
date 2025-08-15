@@ -103,9 +103,20 @@ mimetypes.add_type('application/javascript', '.js')
 
 <<<<<<< HEAD
 # Get base directory for web_app
-web_app_dir = os.path.dirname(os.path.abspath(__file__))
-static_dir = os.path.join(web_app_dir, "static")
-template_dir = os.path.join(web_app_dir, "templates")
+try:
+    web_app_dir = os.path.dirname(os.path.abspath(__file__))
+    static_dir = os.path.join(web_app_dir, "static")
+    template_dir = os.path.join(web_app_dir, "templates")
+    
+    # Ensure directories exist
+    os.makedirs(static_dir, exist_ok=True)
+    os.makedirs(template_dir, exist_ok=True)
+    
+except Exception as e:
+    print(f"Directory setup error: {e}")
+    # Fallback to relative paths
+    static_dir = "static"
+    template_dir = "templates"
 
 # Mount static files
 app.mount("/static", StaticFiles(directory=static_dir, html=True), name="static")
@@ -141,11 +152,18 @@ async def get_styles():
 <<<<<<< HEAD
         path=os.path.join(static_dir, "styles.css"),
 =======
-        path="static/styles.css",
->>>>>>> 5cb95f1756f99b9b6a413434887e60db00428edf
-        media_type="text/css",
-        headers={"Cache-Control": "public, max-age=3600"}
-    )
+    try:
+        css_path = os.path.join(static_dir, "styles.css")
+        if os.path.exists(css_path):
+            return FileResponse(
+                path=css_path,
+                media_type="text/css",
+                headers={"Cache-Control": "public, max-age=3600"}
+            )
+        else:
+            return HTMLResponse("/* CSS file not found */", media_type="text/css")
+    except Exception as e:
+        return HTMLResponse(f"/* CSS error: {e} */", media_type="text/css")
 
 @app.get("/static/app.js")
 async def get_app_js():
@@ -154,11 +172,18 @@ async def get_app_js():
 <<<<<<< HEAD
         path=os.path.join(static_dir, "app.js"),
 =======
-        path="static/app.js",
->>>>>>> 5cb95f1756f99b9b6a413434887e60db00428edf
-        media_type="application/javascript",
-        headers={"Cache-Control": "public, max-age=3600"}
-    )
+    try:
+        js_path = os.path.join(static_dir, "app.js")
+        if os.path.exists(js_path):
+            return FileResponse(
+                path=js_path,
+                media_type="application/javascript",
+                headers={"Cache-Control": "public, max-age=3600"}
+            )
+        else:
+            return HTMLResponse("/* JavaScript file not found */", media_type="application/javascript")
+    except Exception as e:
+        return HTMLResponse(f"/* JavaScript error: {e} */", media_type="application/javascript")
 
 # Authentication endpoints
 @app.post("/api/auth/register", response_model=Token)

@@ -283,7 +283,7 @@
                     
                     <!-- Unified Input Area -->
                     <div class="unified-input-container">
-                    <div id="unifiedForm" class="query-form">
+                        <form id="unifiedForm" class="query-form" onsubmit="handleUnifiedQuery(event)">
                             <div class="input-row">
                                 <div class="main-input-group">
                                     <textarea 
@@ -317,7 +317,7 @@
                             <input type="hidden" id="sensorData" name="sensor_data">
                             <input type="hidden" id="locationInput" name="location">
                             <input type="hidden" id="languageInput" name="language" value="hindi">
-                        </div>
+                        </form>
                         
                         <!-- Quick Actions -->
                         <div class="quick-actions">
@@ -358,11 +358,6 @@
                             </div>
                         </div>
                         <button type="button" onclick="refreshSensorData()" class="refresh-btn">🔄 Refresh</button>
-                    </div>
-                    
-                    <!-- Enhanced Sensor Data Display -->
-                    <div id="enhancedSensorData" class="enhanced-sensor-display" style="display: none;">
-                        <!-- Enhanced sensor data will be populated here -->
                     </div>
                 </div>
                 
@@ -491,32 +486,9 @@
         
         // Initialize application
         document.addEventListener('DOMContentLoaded', function() {
-            initializeApp();
+            console.log('HTML DOMContentLoaded - calling initializeApp');
+            setTimeout(initializeApp, 100); // Small delay to ensure everything is ready
         });
-        
-        function initializeApp() {
-            // Check authentication
-            checkAuthStatus();
-            
-            // Load user context if authenticated
-            loadUserContext();
-            
-            // Load notifications
-            loadNotifications();
-            
-            // Load community posts
-            loadCommunityPosts();
-            
-            // Setup real-time features
-            setupRealtimeFeatures();
-            
-            // Auto-refresh notifications every 5 minutes
-            setInterval(loadNotifications, 5 * 60 * 1000);
-            
-            // Refresh sensor data display
-            refreshSensorData();
-            setInterval(refreshSensorData, 30000); // Every 30 seconds
-        }
         
         function setupRealtimeFeatures() {
             // Monitor online/offline status
@@ -524,6 +496,38 @@
             window.addEventListener('offline', updateOnlineStatus);
             updateOnlineStatus();
         }
+        
+        // Override initializeApp to fix the 401 errors
+        function initializeAppFixed() {
+            // Check authentication
+            checkAuthStatus();
+            
+            // Only load authenticated data if user is logged in
+            if (authToken && currentUser) {
+                setTimeout(() => {
+                    loadUserContext();
+                    loadNotifications();
+                }, 1000);
+            }
+            
+            // Load community posts
+            loadCommunityPosts();
+            
+            // Setup real-time features
+            setupRealtimeFeatures();
+            
+            // Auto-refresh notifications every 5 minutes (only if authenticated)
+            setInterval(() => {
+                if (authToken) {
+                    loadNotifications();
+                }
+            }, 5 * 60 * 1000);
+            
+            // Refresh sensor data display
+            refreshSensorData();
+            setInterval(refreshSensorData, 30000); // Every 30 seconds
+        }
+        
         
         function updateOnlineStatus() {
             const statusDot = document.getElementById('statusDot');
@@ -563,6 +567,11 @@
         function setQuickQuery(query) {
             document.getElementById('unifiedQuery').value = query;
             document.getElementById('unifiedQuery').focus();
+            
+            // Auto-submit for quick queries
+            setTimeout(() => {
+                document.getElementById('sendBtn').click();
+            }, 500);
         }
         
         function switchTab(tabName) {
@@ -581,7 +590,16 @@
             document.getElementById(targetTab).classList.add('active');
             
             // Add active class to clicked button
-            event.target.classList.add('active');
+            if (event && event.target) {
+                event.target.classList.add('active');
+            }
+            
+            // Load tab-specific data
+            if (tabName === 'community') {
+                loadCommunityPosts();
+            } else if (tabName === 'schemes') {
+                loadGovernmentSchemes();
+            }
         }
         
     </script>
