@@ -4,12 +4,14 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr
 import os
 import uuid
 from datetime import datetime
 import json
 import asyncio
+import mimetypes
 
 # Import your existing system
 import sys
@@ -30,6 +32,10 @@ from services.proactive_advisory import proactive_advisory_service
 
 # Import unified AI advisor
 from services.unified_ai_advisor import unified_ai_advisor
+from services.advanced_reasoning import advanced_reasoning_engine, ReasoningType
+from services.government_schemes_api import government_schemes_api
+from services.enhanced_voice_processing import voice_processing_service
+from services.enhanced_sensor_integration import enhanced_sensor_integration
 
 from typing import Optional
 
@@ -86,8 +92,12 @@ os.makedirs("static", exist_ok=True)
 os.makedirs("templates", exist_ok=True)
 os.makedirs("uploads", exist_ok=True)
 
+# Ensure proper MIME types for CSS
+mimetypes.add_type('text/css', '.css')
+mimetypes.add_type('application/javascript', '.js')
+
 # Mount static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="static", html=True), name="static")
 
 # Templates
 templates = Jinja2Templates(directory="templates")
@@ -108,6 +118,24 @@ async def shutdown_event():
 async def home(request: Request):
     """Serve the main PWA interface"""
     return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/static/styles.css")
+async def get_styles():
+    """Serve CSS with correct MIME type"""
+    return FileResponse(
+        path="static/styles.css",
+        media_type="text/css",
+        headers={"Cache-Control": "public, max-age=3600"}
+    )
+
+@app.get("/static/app.js")
+async def get_app_js():
+    """Serve JavaScript with correct MIME type"""
+    return FileResponse(
+        path="static/app.js",
+        media_type="application/javascript",
+        headers={"Cache-Control": "public, max-age=3600"}
+    )
 
 # Authentication endpoints
 @app.post("/api/auth/register", response_model=Token)
@@ -262,6 +290,12 @@ async def process_unified_query(
     try:
         user_id = current_user.id if current_user else "anonymous"
         
+        # Process voice input if provided
+        if voice_data and not text:
+            voice_result = await voice_processing_service.process_voice_input(voice_data, language)
+            if voice_result.get('success'):
+                text = voice_result.get('transcript', '')
+        
         # Handle image upload
         image_path = None
         if image and image.filename:
@@ -311,6 +345,182 @@ async def process_unified_query(
         return JSONResponse({
             "success": False,
             "error": str(e)
+        }, status_code=500)
+
+# Advanced Reasoning Endpoint
+@app.post("/api/advanced-reasoning")
+async def process_advanced_reasoning(
+    request: Request,
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """Process complex agricultural scenarios with advanced reasoning"""
+    try:
+        data = await request.json()
+        query = data.get('query', '')
+        reasoning_type = data.get('reasoning_type', 'trade_off_analysis')
+        
+        user_id = current_user.id if current_user else "anonymous"
+        
+        # Get user context
+        user_context = {}
+        if current_user:
+            profile = user_profile_service.get_profile(current_user.id)
+            if profile:
+                user_context['profile'] = profile.to_dict()
+            
+            farming_context = contextual_memory_service.get_farming_context(current_user.id)
+            if farming_context:
+                user_context['farming'] = {
+                    'location': farming_context.location,
+                    'primary_crops': farming_context.primary_crops,
+                    'farm_size_acres': farming_context.farm_size_acres,
+                    'soil_type': farming_context.soil_type,
+                    'irrigation_method': farming_context.irrigation_method
+                }
+        
+        # Collect relevant data
+        context_data = {'user_context': user_context}
+        
+        # Perform advanced reasoning
+        reasoning_result = await advanced_reasoning_engine.analyze_complex_scenario(
+            query, context_data, ReasoningType(reasoning_type)
+        )
+        
+        return JSONResponse({
+            'success': True,
+            'reasoning_type': reasoning_result.reasoning_type.value,
+            'primary_recommendation': reasoning_result.primary_recommendation,
+            'confidence_score': reasoning_result.confidence_score,
+            'reasoning_steps': [
+                {
+                    'step_number': step.step_number,
+                    'description': step.description,
+                    'analysis': step.analysis,
+                    'confidence': step.confidence
+                }
+                for step in reasoning_result.reasoning_steps
+            ],
+            'trade_offs': reasoning_result.trade_offs,
+            'risk_factors': reasoning_result.risk_factors,
+            'expected_outcomes': reasoning_result.expected_outcomes,
+            'alternative_strategies': reasoning_result.alternative_strategies,
+            'implementation_timeline': reasoning_result.implementation_timeline
+        })
+        
+    except Exception as e:
+        return JSONResponse({
+            'success': False,
+            'error': str(e)
+        }, status_code=500)
+
+# Government Schemes Endpoint
+@app.get("/api/government-schemes")
+async def get_government_schemes(
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get applicable government schemes for the user"""
+    try:
+        # Get user profile
+        profile = user_profile_service.get_profile(current_user.id)
+        if not profile:
+            return JSONResponse({
+                'success': False,
+                'error': 'Please complete your profile first'
+            }, status_code=400)
+        
+        # Get farming context
+        farming_context = contextual_memory_service.get_farming_context(current_user.id)
+        
+        user_profile_dict = {
+            'farm_size_acres': profile.farm_size.value if hasattr(profile.farm_size, 'value') else str(profile.farm_size),
+            'farming_experience': profile.experience.value if hasattr(profile.experience, 'value') else str(profile.experience),
+            'soil_type': profile.soil_type,
+            'irrigation_type': profile.irrigation_type
+        }
+        
+        location = farming_context.location if farming_context else profile.location
+        crops = farming_context.primary_crops if farming_context else profile.primary_crops
+        
+        # Get applicable schemes
+        schemes = government_schemes_api.get_applicable_schemes(
+            user_profile_dict, location, crops
+        )
+        
+        return JSONResponse({
+            'success': True,
+            'schemes': [
+                {
+                    'scheme_id': scheme.scheme.scheme_id,
+                    'name': scheme.scheme.name,
+                    'description': scheme.scheme.description,
+                    'scheme_type': scheme.scheme.scheme_type.value,
+                    'implementing_agency': scheme.scheme.implementing_agency,
+                    'eligibility_status': scheme.status.value,
+                    'eligibility_score': scheme.eligibility_score,
+                    'matching_criteria': scheme.matching_criteria,
+                    'missing_criteria': scheme.missing_criteria,
+                    'recommendations': scheme.recommendations,
+                    'estimated_benefit': scheme.estimated_benefit,
+                    'benefits': scheme.scheme.benefits,
+                    'application_process': scheme.scheme.application_process,
+                    'required_documents': scheme.scheme.required_documents,
+                    'contact_info': scheme.scheme.contact_info,
+                    'website_url': scheme.scheme.website_url
+                }
+                for scheme in schemes
+            ]
+        })
+        
+    except Exception as e:
+        return JSONResponse({
+            'success': False,
+            'error': str(e)
+        }, status_code=500)
+
+# Voice Processing Endpoint
+@app.post("/api/voice/process")
+async def process_voice_input(
+    audio_data: str = Form(...),
+    language: str = Form("hi"),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """Process voice input and convert to text"""
+    try:
+        result = await voice_processing_service.process_voice_input(audio_data, language)
+        return JSONResponse(result)
+        
+    except Exception as e:
+        return JSONResponse({
+            'success': False,
+            'error': str(e)
+        }, status_code=500)
+
+# Enhanced Sensor Data Endpoint
+@app.get("/api/sensors/{farm_id}")
+async def get_sensor_data(
+    farm_id: str,
+    sensor_types: str = None,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get real-time sensor data for a farm"""
+    try:
+        # Parse sensor types if provided
+        requested_sensor_types = None
+        if sensor_types:
+            from services.enhanced_sensor_integration import SensorType
+            requested_sensor_types = [SensorType(s.strip()) for s in sensor_types.split(',')]
+        
+        # Get sensor data
+        sensor_data = await enhanced_sensor_integration.get_real_sensor_data(
+            farm_id, requested_sensor_types
+        )
+        
+        return JSONResponse(sensor_data)
+        
+    except Exception as e:
+        return JSONResponse({
+            'success': False,
+            'error': str(e)
         }, status_code=500)
 
 # Contextual Memory Endpoints
