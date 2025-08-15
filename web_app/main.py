@@ -37,7 +37,12 @@ from services.advanced_reasoning import advanced_reasoning_engine, ReasoningType
 from services.government_schemes_api import government_schemes_api
 from services.enhanced_voice_processing import voice_processing_service
 from services.enhanced_sensor_integration import enhanced_sensor_integration
+<<<<<<< HEAD
 from typing import Optional, Dict
+=======
+
+from typing import Optional
+>>>>>>> 5cb95f1756f99b9b6a413434887e60db00428edf
 
 # Pydantic models
 class UserCreate(BaseModel):
@@ -96,6 +101,7 @@ os.makedirs("uploads", exist_ok=True)
 mimetypes.add_type('text/css', '.css')
 mimetypes.add_type('application/javascript', '.js')
 
+<<<<<<< HEAD
 # Get base directory for web_app
 web_app_dir = os.path.dirname(os.path.abspath(__file__))
 static_dir = os.path.join(web_app_dir, "static")
@@ -103,6 +109,10 @@ template_dir = os.path.join(web_app_dir, "templates")
 
 # Mount static files
 app.mount("/static", StaticFiles(directory=static_dir, html=True), name="static")
+=======
+# Mount static files
+app.mount("/static", StaticFiles(directory="static", html=True), name="static")
+>>>>>>> 5cb95f1756f99b9b6a413434887e60db00428edf
 
 # Templates
 templates = Jinja2Templates(directory=template_dir)
@@ -128,7 +138,11 @@ async def home(request: Request):
 async def get_styles():
     """Serve CSS with correct MIME type"""
     return FileResponse(
+<<<<<<< HEAD
         path=os.path.join(static_dir, "styles.css"),
+=======
+        path="static/styles.css",
+>>>>>>> 5cb95f1756f99b9b6a413434887e60db00428edf
         media_type="text/css",
         headers={"Cache-Control": "public, max-age=3600"}
     )
@@ -137,7 +151,11 @@ async def get_styles():
 async def get_app_js():
     """Serve JavaScript with correct MIME type"""
     return FileResponse(
+<<<<<<< HEAD
         path=os.path.join(static_dir, "app.js"),
+=======
+        path="static/app.js",
+>>>>>>> 5cb95f1756f99b9b6a413434887e60db00428edf
         media_type="application/javascript",
         headers={"Cache-Control": "public, max-age=3600"}
     )

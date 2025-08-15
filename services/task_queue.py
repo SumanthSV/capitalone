@@ -145,8 +145,12 @@ class TaskQueue:
             try:
                 await asyncio.sleep(3600)  # Run every hour
                 
+<<<<<<< HEAD
                 from datetime import timedelta
                 cutoff_time = datetime.now() - timedelta(hours=24)
+=======
+                cutoff_time = datetime.now().replace(hour=datetime.now().hour - 24)
+>>>>>>> 5cb95f1756f99b9b6a413434887e60db00428edf
                 
                 # Remove old completed tasks
                 old_tasks = [

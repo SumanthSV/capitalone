@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // KrishiMitra - Unified AI Chat Application
 console.log('KrishiMitra JavaScript loaded');
 
@@ -1167,3 +1168,6 @@ function updateChatDisplay() {
         addMessageToChat(message.sender, message.content, message.metadata);
     });
 }
+=======
+{"code":"rate-limited","message":"You have hit the rate limit. Please upgrade to keep chatting.","providerLimitHit":false,"isRetryable":true}
+>>>>>>> 5cb95f1756f99b9b6a413434887e60db00428edf

@@ -54,6 +54,10 @@ scipy>=1.11.0
 cryptography>=41.0.0
 
 # SMS notifications (optional)
+<<<<<<< HEAD
 twilio>=8.10.0
 
 deep-translator>=1.11.4
+=======
+twilio>=8.10.0
+>>>>>>> 5cb95f1756f99b9b6a413434887e60db00428edf
