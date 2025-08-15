@@ -1,0 +1,61 @@
+# Core dependencies
+langgraph>=0.0.40
+google-generativeai>=0.3.0
+python-dotenv>=1.0.0
+pandas>=2.0.0
+requests>=2.31.0
+
+# Image processing
+opencv-python>=4.8.0
+scikit-learn>=1.3.0
+colormath>=3.0.0
+Pillow>=10.0.0
+
+# Language processing
+googletrans==4.0.0rc1
+langdetect>=1.0.9
+
+# Vector database and embeddings (optional)
+chromadb>=0.4.0
+sentence-transformers>=2.2.0
+
+# Web framework
+fastapi>=0.104.0
+uvicorn>=0.24.0
+python-multipart>=0.0.6
+jinja2>=3.1.0
+
+# Authentication
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+python-email-validator>=2.0.0
+pydantic[email]>=2.0.0
+
+# Enhanced error handling and logging
+structlog>=23.1.0
+
+# Additional utilities
+python-slugify>=8.0.0
+pydantic>=2.0.0
+
+# Weather and location services
+geopy>=2.3.0
+timezonefinder>=6.2.0
+
+# Real API integrations
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# Advanced data processing
+numpy>=1.24.0
+scipy>=1.11.0
+
+# Security enhancements
+cryptography>=41.0.0
+
+# SMS notifications (optional)
+twilio>=8.10.0
+
+# Development tools (optional)
+pytest>=7.4.0
+pytest-asyncio>=0.21.0

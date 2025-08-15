@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KrishiMitra - AI Agricultural Advisory</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    <link rel="icon" type="image/png" href="/static/icons/icon-32x32.png">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192x192.png">
+    
+    <!-- PWA meta tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="KrishiMitra">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="KrishiMitra">
+    <meta name="msapplication-TileColor" content="#4CAF50">
+    
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <!-- Authentication Modal -->
+    <div class="modal" id="authModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Welcome to KrishiMitra</h3>
+            </div>
+            <div class="auth-tabs">
+                <button class="auth-tab-button active" onclick="switchAuthTab('login')">Login</button>
+                <button class="auth-tab-button" onclick="switchAuthTab('register')">Register</button>
+                <button class="auth-tab-button" onclick="switchAuthTab('phone')">📱 Phone</button>
+            </div>
+            
+            <!-- Login Tab -->
+            <div id="loginAuthTab" class="auth-tab-content active">
+                <form onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label for="loginEmail">Email:</label>
+                        <input type="email" id="loginEmail" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password:</label>
+                        <input type="password" id="loginPassword" name="password" required>
+                    </div>
+                    <button type="submit" class="submit-btn">Login</button>
+                </form>
+            </div>
+            
+            <!-- Register Tab -->
+            <div id="registerAuthTab" class="auth-tab-content">
+                <form onsubmit="handleRegister(event)">
+                    <div class="form-group">
+                        <label for="registerName">Name:</label>
+                        <input type="text" id="registerName" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerEmail">Email:</label>
+                        <input type="email" id="registerEmail" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">Password:</label>
+                        <input type="password" id="registerPassword" name="password" required minlength="6">
+                    </div>
+                    <button type="submit" class="submit-btn">Register</button>
+                </form>
+            </div>
+            
+            <!-- Phone Auth Tab -->
+            <div id="phoneAuthTab" class="auth-tab-content">
+                <div class="phone-auth-section">
+                    <div class="form-group">
+                        <label for="countryCode">Country Code:</label>
+                        <select id="countryCode">
+                            <option value="+91">🇮🇳 +91 (India)</option>
+                            <option value="+1">🇺🇸 +1 (USA)</option>
+                            <option value="+44">🇬🇧 +44 (UK)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="phoneNumber">Phone Number:</label>
+                        <input type="tel" id="phoneNumber" placeholder="Enter 10-digit mobile number" required>
+                    </div>
+                    <button type="button" id="sendOtpBtn" onclick="sendOTP()" class="submit-btn">Send OTP</button>
+                    
+                    <div id="otpSection" style="display: none;">
+                        <div class="form-group">
+                            <label for="otpCode">Enter OTP:</label>
+                            <input type="text" id="otpCode" placeholder="6-digit OTP" maxlength="6" required>
+                            <input type="hidden" id="sessionId">
+                        </div>
+                        <button type="button" onclick="verifyOTP()" class="submit-btn">Verify OTP</button>
+                        <div id="otpCountdown" class="otp-countdown"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Farming Context Modal -->
+    <div class="modal" id="farmingContextModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🌾 Complete Your Farming Profile</h3>
+            </div>
+            <form onsubmit="saveFarmingContext(event)">
+                <div class="form-group">
+                    <label for="contextLocation">Farm Location:</label>
+                    <input type="text" id="contextLocation" name="location" placeholder="e.g., Punjab, Maharashtra" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contextPrimaryCrops">Primary Crops (comma-separated):</label>
+                    <input type="text" id="contextPrimaryCrops" name="primary_crops" placeholder="e.g., Rice, Wheat, Cotton" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contextSecondaryCrops">Secondary Crops (optional):</label>
+                    <input type="text" id="contextSecondaryCrops" name="secondary_crops" placeholder="e.g., Vegetables, Pulses">
+                </div>
+                
+                <div class="form-group">
+                    <label for="contextFarmSize">Farm Size (acres):</label>
+                    <input type="number" id="contextFarmSize" name="farm_size_acres" step="0.1" min="0.1" placeholder="e.g., 2.5" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contextSoilType">Soil Type:</label>
+                    <select id="contextSoilType" name="soil_type" required>
+                        <option value="">Select soil type</option>
+                        <option value="clay">Clay</option>
+                        <option value="loam">Loam</option>
+                        <option value="sandy">Sandy</option>
+                        <option value="silt">Silt</option>
+                        <option value="black_cotton">Black Cotton</option>
+                        <option value="red">Red</option>
+                        <option value="alluvial">Alluvial</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contextIrrigationMethod">Irrigation Method:</label>
+                    <select id="contextIrrigationMethod" name="irrigation_method" required>
+                        <option value="">Select irrigation method</option>
+                        <option value="drip">Drip Irrigation</option>
+                        <option value="sprinkler">Sprinkler</option>
+                        <option value="flood">Flood/Basin</option>
+                        <option value="furrow">Furrow</option>
+                        <option value="manual">Manual/Bucket</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contextIrrigationFrequency">Irrigation Frequency (days):</label>
+                    <input type="number" id="contextIrrigationFrequency" name="irrigation_frequency_days" min="1" max="30" value="7" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contextExperience">Farming Experience:</label>
+                    <select id="contextExperience" name="farming_experience" required>
+                        <option value="">Select experience level</option>
+                        <option value="beginner">Beginner (0-2 years)</option>
+                        <option value="intermediate">Intermediate (3-10 years)</option>
+                        <option value="experienced">Experienced (10+ years)</option>
+                        <option value="expert">Expert/Commercial</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contextLanguage">Preferred Language:</label>
+                    <select id="contextLanguage" name="preferred_language" required>
+                        <option value="hindi">हिंदी (Hindi)</option>
+                        <option value="english">English</option>
+                        <option value="bengali">বাংলা (Bengali)</option>
+                        <option value="telugu">తెలుగు (Telugu)</option>
+                        <option value="marathi">मराठी (Marathi)</option>
+                        <option value="tamil">தமிழ் (Tamil)</option>
+                        <option value="gujarati">ગુજરાતી (Gujarati)</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="submit-btn">Save Farming Profile</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="offline-indicator" id="offlineIndicator">
+        📡 Offline Mode - Limited functionality
+    </div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>🌾 KrishiMitra</h1>
+            <p>Your Personal AI Agricultural Advisor</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="status-bar">
+                <div class="online-status">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">Online</span>
+                </div>
+                <div class="user-info">
+                    <span id="userInfo">Guest User</span>
+                    <button onclick="logout()" class="logout-btn" style="display: none;">Logout</button>
+                </div>
+                <div class="notifications-badge" id="notificationsBadge" onclick="toggleNotifications()">
+                    🔔 <span id="notificationCount">0</span>
+                </div>
+            </div>
+            
+            <!-- Context Info Display -->
+            <div id="contextInfo" class="context-info" style="display: none;"></div>
+            
+            <!-- Notifications Panel -->
+            <div class="notifications-panel" id="notificationsPanel">
+                <div class="notifications-header">
+                    <h3>🔔 Notifications</h3>
+                    <button onclick="toggleNotifications()" class="close-btn">×</button>
+                </div>
+                <div class="notifications-content" id="notificationsContent">
+                    <div class="loading-notifications">Loading notifications...</div>
+                </div>
+            </div>
+            
+            <!-- Main AI Chat Interface -->
+            <div class="unified-chat-interface">
+                <div class="tab-buttons">
+                    <button class="tab-button active" onclick="switchTab('chat')">
+                        🤖 AI Chat
+                    </button>
+                    <button class="tab-button" onclick="switchTab('community')">
+                        👥 Community
+                    </button>
+                </div>
+                
+                <!-- AI Chat Tab (Main Interface) -->
+                <div id="chatTab" class="tab-content active">
+                    <h3>🤖 Ask KrishiMitra Anything</h3>
+                    <p>Your personal AI agricultural advisor. Ask about irrigation, market prices, diseases, or any farming question!</p>
+                    
+                    <!-- Chat History -->
+                    <div id="chatHistory" class="chat-history">
+                        <div class="welcome-message">
+                            <div class="ai-message">
+                                <div class="message-avatar">🌾</div>
+                                <div class="message-content">
+                                    <p>Namaste! I'm KrishiMitra, your personal AI agricultural advisor. I know your farm and can help you with:</p>
+                                    <ul>
+                                        <li>💧 "Can I irrigate now?" - Real-time irrigation advice</li>
+                                        <li>💰 "Should I sell my crops today?" - Market timing guidance</li>
+                                        <li>🌾 "What's the wheat price in Punjab?" - Live market prices</li>
+                                        <li>🦠 Disease diagnosis from crop photos</li>
+                                        <li>🌤️ Weather-based farming decisions</li>
+                                    </ul>
+                                    <p>Just ask me anything in your preferred language!</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Typing indicator -->
+                        <div class="typing-indicator" id="typingIndicator">
+                            <div class="message-avatar">🌾</div>
+                            <div class="message-content">
+                                <span>KrishiMitra is thinking</span>
+                                <div class="typing-dots">
+                                    <div class="typing-dot"></div>
+                                    <div class="typing-dot"></div>
+                                    <div class="typing-dot"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Unified Input Area -->
+                    <div class="unified-input-container">
+                        <form id="unifiedForm" enctype="multipart/form-data">
+                            <div class="input-row">
+                                <div class="main-input-group">
+                                    <textarea 
+                                        id="unifiedQuery" 
+                                        name="text" 
+                                        placeholder="Ask me anything about farming... (e.g., 'Can I irrigate my wheat now?', 'What's the rice price in Punjab?', 'Should I sell my cotton today?')"
+                                        rows="3"
+                                    ></textarea>
+                                    
+                                    <div class="input-actions">
+                                        <button type="button" class="action-btn voice-btn" id="voiceBtn" title="Voice Input">
+                                            🎤
+                                        </button>
+                                        <button type="button" class="action-btn image-btn" id="imageBtn" title="Upload Image">
+                                            📷
+                                        </button>
+                                        <button type="button" class="action-btn sensor-btn" id="sensorBtn" title="Sensor Data">
+                                            📊
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" class="send-btn" id="sendBtn">
+                                    <span class="send-icon">➤</span>
+                                </button>
+                            </div>
+                            
+                            <!-- Hidden inputs -->
+                            <input type="file" id="imageInput" name="image" accept="image/*" style="display: none;">
+                            <input type="hidden" id="voiceData" name="voice_data">
+                            <input type="hidden" id="sensorData" name="sensor_data">
+                            <input type="hidden" id="locationInput" name="location">
+                            <input type="hidden" id="languageInput" name="language" value="hindi">
+                        </form>
+                        
+                        <!-- Quick Actions -->
+                        <div class="quick-actions">
+                            <button type="button" class="quick-action" onclick="setQuickQuery('Can I irrigate my crops now?')">
+                                💧 Irrigation Check
+                            </button>
+                            <button type="button" class="quick-action" onclick="setQuickQuery('What are current market prices for my crops?')">
+                                💰 Market Prices
+                            </button>
+                            <button type="button" class="quick-action" onclick="setQuickQuery('Should I sell my crops today?')">
+                                📈 Selling Advice
+                            </button>
+                            <button type="button" class="quick-action" onclick="setQuickQuery('What is the weather forecast for my area?')">
+                                🌤️ Weather Check
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Sensor Data Display -->
+                    <div id="sensorDataDisplay" class="sensor-display" style="display: none;">
+                        <h4>📊 Simulated Sensor Data</h4>
+                        <div class="sensor-grid">
+                            <div class="sensor-item">
+                                <span class="sensor-label">Soil Moisture:</span>
+                                <span class="sensor-value" id="soilMoistureValue">--</span>
+                            </div>
+                            <div class="sensor-item">
+                                <span class="sensor-label">Temperature:</span>
+                                <span class="sensor-value" id="temperatureValue">--</span>
+                            </div>
+                            <div class="sensor-item">
+                                <span class="sensor-label">pH Level:</span>
+                                <span class="sensor-value" id="phValue">--</span>
+                            </div>
+                            <div class="sensor-item">
+                                <span class="sensor-label">Humidity:</span>
+                                <span class="sensor-value" id="humidityValue">--</span>
+                            </div>
+                        </div>
+                        <button type="button" onclick="refreshSensorData()" class="refresh-btn">🔄 Refresh</button>
+                    </div>
+                </div>
+                
+                <!-- Community Tab -->
+                <div id="communityTab" class="tab-content">
+                    <div class="community-section">
+                        <div class="community-header">
+                            <h3>👥 Farmer Community</h3>
+                            <button class="create-post-btn" onclick="showCreatePostModal()">
+                                ➕ Create Post
+                            </button>
+                        </div>
+                        
+                        <div class="community-filters">
+                            <select id="postTypeFilter" onchange="filterCommunityPosts()">
+                                <option value="">All Posts</option>
+                                <option value="question">Questions</option>
+                                <option value="tip">Tips</option>
+                                <option value="success_story">Success Stories</option>
+                                <option value="market_update">Market Updates</option>
+                            </select>
+                            
+                            <input type="text" id="locationFilter" placeholder="Filter by location" onchange="filterCommunityPosts()">
+                        </div>
+                        
+                        <div class="community-posts" id="communityPosts">
+                            <div class="loading">Loading community posts...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Create Post Modal -->
+    <div class="modal" id="createPostModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create New Post</h3>
+                <button onclick="hideCreatePostModal()" class="close-btn">×</button>
+            </div>
+            <form id="createPostForm">
+                <div class="form-group">
+                    <label for="postTitle">Title:</label>
+                    <input type="text" id="postTitle" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="postType">Post Type:</label>
+                    <select id="postType" required>
+                        <option value="question">Question</option>
+                        <option value="tip">Farming Tip</option>
+                        <option value="success_story">Success Story</option>
+                        <option value="market_update">Market Update</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="postContent">Content:</label>
+                    <textarea id="postContent" rows="5" required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="postLocation">Location:</label>
+                    <input type="text" id="postLocation">
+                </div>
+                
+                <div class="form-group">
+                    <label for="postCrops">Related Crops (comma-separated):</label>
+                    <input type="text" id="postCrops" placeholder="e.g., Rice, Wheat">
+                </div>
+                
+                <button type="submit" class="submit-btn">Create Post</button>
+            </form>
+        </div>
+    </div>
+    
+    <script src="/static/app.js"></script>
+    <script>
+        // Register service worker for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/sw.js')
+                .then(registration => console.log('SW registered'))
+                .catch(error => console.log('SW registration failed'));
+        }
+        
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+        
+        function initializeApp() {
+            // Check authentication
+            checkAuthStatus();
+            
+            // Load user context if authenticated
+            loadUserContext();
+            
+            // Load notifications
+            loadNotifications();
+            
+            // Load community posts
+            loadCommunityPosts();
+            
+            // Setup real-time features
+            setupRealtimeFeatures();
+            
+            // Auto-refresh notifications every 5 minutes
+            setInterval(loadNotifications, 5 * 60 * 1000);
+            
+            // Refresh sensor data display
+            refreshSensorData();
+            setInterval(refreshSensorData, 30000); // Every 30 seconds
+        }
+        
+        function setupRealtimeFeatures() {
+            // Monitor online/offline status
+            window.addEventListener('online', updateOnlineStatus);
+            window.addEventListener('offline', updateOnlineStatus);
+            updateOnlineStatus();
+        }
+        
+        function updateOnlineStatus() {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            const offlineIndicator = document.getElementById('offlineIndicator');
+            
+            if (navigator.onLine) {
+                statusDot.classList.remove('offline');
+                statusText.textContent = 'Online';
+                offlineIndicator.classList.remove('show');
+            } else {
+                statusDot.classList.add('offline');
+                statusText.textContent = 'Offline';
+                offlineIndicator.classList.add('show');
+            }
+        }
+        
+        function refreshSensorData() {
+            // Simulate real sensor data (in production, this would call real IoT APIs)
+            const sensorData = getSensorData();
+            document.getElementById('soilMoistureValue').textContent = sensorData.soil_moisture.toFixed(1) + '%';
+            document.getElementById('temperatureValue').textContent = sensorData.temperature.toFixed(1) + '°C';
+            document.getElementById('phValue').textContent = sensorData.ph.toFixed(1);
+            document.getElementById('humidityValue').textContent = sensorData.humidity.toFixed(1) + '%';
+        }
+        
+        function getSensorData() {
+            // Simulate realistic sensor readings
+            return {
+                soil_moisture: 45 + Math.random() * 30, // 45-75%
+                temperature: 22 + Math.random() * 15,   // 22-37°C
+                ph: 6.0 + Math.random() * 2,           // 6.0-8.0
+                humidity: 40 + Math.random() * 40       // 40-80%
+            };
+        }
+        
+        function setQuickQuery(query) {
+            document.getElementById('unifiedQuery').value = query;
+            document.getElementById('unifiedQuery').focus();
+        }
+        
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            const targetTab = tabName === 'chat' ? 'chatTab' : tabName + 'Tab';
+            document.getElementById(targetTab).classList.add('active');
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

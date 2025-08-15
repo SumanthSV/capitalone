@@ -1,0 +1,35 @@
+2025-08-15 02:45:41,805 - chromadb.telemetry.product.posthog - ERROR - Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+2025-08-15 02:45:41,806 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
+2025-08-15 02:45:41,806 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: all-MiniLM-L6-v2
+2025-08-15 02:45:46,836 - huggingface_hub.file_download - WARNING - Xet Storage is enabled for this repo, but the 'hf_xet' package is not installed. Falling back to regular HTTP download. For better performance, install the package with: `pip install huggingface_hub[hf_xet]` or `pip install hf_xet`
+2025-08-15 02:46:04,209 - chromadb.telemetry.product.posthog - ERROR - Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+2025-08-15 02:46:04,224 - chromadb.telemetry.product.posthog - ERROR - Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+2025-08-15 02:46:04,237 - chromadb.telemetry.product.posthog - ERROR - Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+2025-08-15 02:46:29,027 - chromadb.telemetry.product.posthog - ERROR - Failed to send telemetry event CollectionAddEvent: capture() takes 1 positional argument but 3 were given
+2025-08-15 02:46:29,206 - chromadb.telemetry.product.posthog - ERROR - Failed to send telemetry event CollectionAddEvent: capture() takes 1 positional argument but 3 were given
+2025-08-15 02:46:29,379 - chromadb.telemetry.product.posthog - ERROR - Failed to send telemetry event CollectionAddEvent: capture() takes 1 positional argument but 3 were given
+2025-08-15 02:47:35,224 - chromadb.telemetry.product.posthog - ERROR - Failed to send telemetry event CollectionQueryEvent: capture() takes 1 positional argument but 3 were given
+2025-08-15 02:47:35,273 - chromadb.telemetry.product.posthog - ERROR - Failed to send telemetry event CollectionQueryEvent: capture() takes 1 positional argument but 3 were given
+2025-08-15 02:47:35,317 - chromadb.telemetry.product.posthog - ERROR - Failed to send telemetry event CollectionQueryEvent: capture() takes 1 positional argument but 3 were given
+2025-08-15 02:47:47,103 - services.error_handler - ERROR - Error in weather_current: 401 Client Error: Unauthorized for url: http://api.openweathermap.org/data/2.5/weather?q=karnataka&appid=your_openweather_api_key_here&units=metric
+2025-08-15 02:47:47,118 - services.error_handler - ERROR - Traceback: Traceback (most recent call last):
+  File "S:\capitalone\project\services\weather.py", line 42, in get_current_weather
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "S:\capitalone\project\venv\Lib\site-packages\requests\models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 401 Client Error: Unauthorized for url: http://api.openweathermap.org/data/2.5/weather?q=karnataka&appid=your_openweather_api_key_here&units=metric
+
+2025-08-15 02:47:47,276 - services.error_handler - ERROR - Error in weather_forecast: 401 Client Error: Unauthorized for url: http://api.openweathermap.org/data/2.5/forecast?q=karnataka&appid=your_openweather_api_key_here&units=metric&cnt=40
+2025-08-15 02:47:47,277 - services.error_handler - ERROR - Traceback: Traceback (most recent call last):
+  File "S:\capitalone\project\services\weather.py", line 90, in get_weather_forecast
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "S:\capitalone\project\venv\Lib\site-packages\requests\models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 401 Client Error: Unauthorized for url: http://api.openweathermap.org/data/2.5/forecast?q=karnataka&appid=your_openweather_api_key_here&units=metric&cnt=40
+
+2025-08-15 02:59:04,959 - chromadb.telemetry.product.posthog - ERROR - Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+2025-08-15 02:59:04,961 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: cpu
+2025-08-15 02:59:04,961 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: all-MiniLM-L6-v2
+2025-08-15 02:59:10,660 - chromadb.telemetry.product.posthog - ERROR - Failed to send telemetry event CollectionQueryEvent: capture() takes 1 positional argument but 3 were given
