@@ -127,28 +127,45 @@ class IntelligentQueryRouter:
     
     def analyze_query(self, query: str, user_id: str = None) -> QueryAnalysis:
         """Analyze user query to understand intent and extract information"""
+        print(f"\n=== QUERY ANALYSIS START ===")
+        print(f"Original query: {query}")
+        print(f"User ID: {user_id}")
+        
         try:
             # Detect language
             detected_lang = detect_language(query)
             original_query = query
+            print(f"[INFO] Language detected: {detected_lang}")
             
             # Translate to English for processing if needed
             if detected_lang != 'en':
+                print(f"[INFO] Translating query to English for processing")
                 query_en = translate_text(query, detected_lang, 'en')
+                print(f"[INFO] Translated query: {query_en}")
             else:
                 query_en = query
+                print(f"[INFO] Query already in English")
             
             # Extract information
+            print(f"[INFO] Extracting information from query...")
             extracted_info = self._extract_information(query_en)
+            print(f"[INFO] Extracted info:")
+            print(f"  - Crops: {extracted_info.crops}")
+            print(f"  - Locations: {extracted_info.locations}")
+            print(f"  - Actions: {extracted_info.actions}")
             
             # Determine intent
+            print(f"[INFO] Determining query intent...")
             intent, confidence = self._determine_intent(query_en, extracted_info)
+            print(f"[INFO] Intent determined: {intent.value} (confidence: {confidence})")
             
             # Determine required APIs and context
             required_apis = self.api_requirements.get(intent, [])
             context_needed = self._determine_context_needs(intent, extracted_info)
+            print(f"[INFO] Required APIs: {required_apis}")
+            print(f"[INFO] Context needed: {context_needed}")
             
-            return QueryAnalysis(
+            analysis_result = QueryAnalysis(
                 intent=intent,
                 confidence=confidence,
                 extracted_info=extracted_info,
@@ -158,8 +175,14 @@ class IntelligentQueryRouter:
                 original_query=original_query
             )
             
+            print(f"[SUCCESS] Query analysis completed")
+            print(f"=== QUERY ANALYSIS END ===\n")
+            
+            return analysis_result
+            
         except Exception as e:
-            print(f"Query analysis error: {str(e)}")
+            print(f"[ERROR] Query analysis failed: {str(e)}")
+            print(f"=== QUERY ANALYSIS FAILED ===\n")
             return self._create_fallback_analysis(query)
     
     def _extract_information(self, query: str) -> ExtractedInfo:

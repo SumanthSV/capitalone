@@ -317,11 +317,31 @@
                             <input type="hidden" id="voiceData" name="voice_data">
                             <input type="hidden" id="sensorData" name="sensor_data">
                             <input type="hidden" id="locationInput" name="location">
-                            <input type="hidden" id="languageInput" name="language" value="hindi">
+                            <select id="languageInput" name="language" style="display: none;">
+                                <option value="english">English</option>
+                                <option value="hindi" selected>Hindi</option>
+                                <option value="bengali">Bengali</option>
+                                <option value="telugu">Telugu</option>
+                                <option value="marathi">Marathi</option>
+                                <option value="tamil">Tamil</option>
+                                <option value="gujarati">Gujarati</option>
+                            </select>
                         </form>
                         
                         <!-- Quick Actions -->
                         <div class="quick-actions">
+                            <div class="language-selector" style="margin-bottom: 10px;">
+                                <label for="responseLanguage" style="font-size: 12px; color: #666;">Response Language:</label>
+                                <select id="responseLanguage" onchange="updateLanguagePreference()" style="padding: 5px 10px; font-size: 12px; border-radius: 15px;">
+                                    <option value="english">English</option>
+                                    <option value="hindi" selected>हिंदी (Hindi)</option>
+                                    <option value="bengali">বাংলা (Bengali)</option>
+                                    <option value="telugu">తెలుగు (Telugu)</option>
+                                    <option value="marathi">मराठी (Marathi)</option>
+                                    <option value="tamil">தமிழ் (Tamil)</option>
+                                    <option value="gujarati">ગુજરાતી (Gujarati)</option>
+                                </select>
+                            </div>
                             <button type="button" class="quick-action" onclick="setQuickQuery('Can I irrigate my crops now?')">
                                 💧 Irrigation Check
                             </button>

@@ -217,13 +217,17 @@ async function handleLogin(event) {
             
             updateUserInterface();
             showMessage('Login successful!', 'success');
-            
-            // Load user context after login
-            setTimeout(() => {
-                loadUserContext();
-                loadNotifications();
             }, 500);
         } else {
+        function updateLanguagePreference() {
+            const responseLanguage = document.getElementById('responseLanguage').value;
+            const languageInput = document.getElementById('languageInput');
+            if (languageInput) {
+                languageInput.value = responseLanguage;
+            }
+            console.log('[INFO] Language preference updated to:', responseLanguage);
+        }
+        
             showMessage('Login failed: ' + (result.detail || 'Unknown error'), 'error');
         }
     } catch (error) {
@@ -506,7 +510,8 @@ function displayUserContext(context) {
 
 // Main Query Processing
 async function handleUnifiedQuery(event) {
-    console.log('handleUnifiedQuery called');
+    console.log('\n=== FRONTEND QUERY PROCESSING START ===');
+    console.log('handleUnifiedQuery called at:', new Date().toISOString());
     
     try {
         if (event && typeof event.preventDefault === 'function') {
@@ -514,16 +519,17 @@ async function handleUnifiedQuery(event) {
         }
         
         if (isProcessingQuery) {
+            console.log('[WARNING] Query already in progress, blocking new request');
             showMessage('Please wait for your previous query to complete', 'warning');
             return;
         }
         
-        console.log('Processing query started...');
+        console.log('[INFO] Processing query started...');
         
         // Get form data
         const form = document.getElementById('unifiedForm');
         if (!form) {
-            console.error('Form not found!');
+            console.error('[ERROR] Form not found!');
             showMessage('Error: Form not found', 'error');
             return;
         }
@@ -531,52 +537,64 @@ async function handleUnifiedQuery(event) {
         const formData = new FormData(form);
         const textQuery = document.getElementById('unifiedQuery').value?.trim();
         const imageFile = document.getElementById('imageInput').files[0];
+        const languageSelect = document.getElementById('languageInput');
+        const selectedLanguage = languageSelect ? languageSelect.value : 'english';
         
-        console.log('Form data:', { 
+        console.log('[INFO] Form data extracted:', { 
             textQuery: textQuery || 'empty', 
-            imageFile: imageFile ? imageFile.name : 'none'
+            imageFile: imageFile ? imageFile.name : 'none',
+            language: selectedLanguage
         });
         
         // Validate input
         if (!textQuery && !imageFile) {
+            console.log('[ERROR] No valid input provided');
             showMessage('Please enter a question or upload an image', 'warning');
             return;
         }
         
         // Block further queries
         isProcessingQuery = true;
+        console.log('[INFO] Query processing locked');
         disableInput();
         showTypingIndicator();
         
         // Add user message to chat
         if (textQuery) {
+            console.log('[INFO] Adding user message to chat');
             addMessageToChat('user', textQuery);
         }
         if (imageFile) {
+            console.log('[INFO] Adding image upload message to chat');
             addMessageToChat('user', `📷 Uploaded image: ${imageFile.name}`);
         }
         
         // Prepare form data for API
         const apiFormData = new FormData();
         apiFormData.append('text', textQuery);
-        apiFormData.append('language', 'hindi');
+        apiFormData.append('language', selectedLanguage);
+        
+        console.log('[INFO] API form data prepared with language:', selectedLanguage);
         
         if (imageFile) {
             apiFormData.append('image', imageFile);
+            console.log('[INFO] Image added to form data');
         }
         
         // Add sensor data if active
         const sensorDataInput = document.getElementById('sensorData');
         if (sensorDataInput && sensorDataInput.value) {
             apiFormData.append('sensor_data', sensorDataInput.value);
+            console.log('[INFO] Sensor data added to form data');
         }
         
-        console.log('Sending API request...');
+        console.log('[INFO] Sending API request to /api/unified-query...');
         
         // Prepare headers
         const headers = {};
         if (authToken) {
             headers['Authorization'] = `Bearer ${authToken}`;
+            console.log('[INFO] Authorization header added');
         }
         
         // Make API request
@@ -586,18 +604,25 @@ async function handleUnifiedQuery(event) {
             body: apiFormData
         });
         
-        console.log('API response status:', response.status);
+        console.log('[INFO] API response received, status:', response.status);
         
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('API error:', response.status, errorText);
+            console.error('[ERROR] API error:', response.status, errorText);
             throw new Error(`Server error: ${response.status}`);
         }
         
         const result = await response.json();
-        console.log('API result:', result);
+        console.log('[INFO] API result received:');
+        console.log('  - Success:', result.success);
+        console.log('  - Intent detected:', result.intent_detected);
+        console.log('  - Language used:', result.language_used);
+        console.log('  - APIs called:', result.apis_called);
+        console.log('  - Context applied:', result.context_applied);
+        console.log('  - Confidence score:', result.confidence_score);
         
         if (result.success) {
+            console.log('[SUCCESS] Query processed successfully');
             addMessageToChat('ai', result.response || 'Query processed successfully', {
                 confidence: result.confidence_score || 0.8,
                 dataSources: result.data_sources || [],
@@ -606,11 +631,13 @@ async function handleUnifiedQuery(event) {
             });
             
             // Clear form
+            console.log('[INFO] Clearing form inputs');
             document.getElementById('unifiedQuery').value = '';
             document.getElementById('imageInput').value = '';
             if (sensorDataInput) sensorDataInput.value = '';
             
         } else {
+            console.log('[ERROR] Query processing failed:', result.error);
             addMessageToChat('ai', result.error || 'Sorry, there was an error processing your request', {
                 confidence: 0.1,
                 isError: true
@@ -618,15 +645,17 @@ async function handleUnifiedQuery(event) {
         }
         
     } catch (error) {
-        console.error('Query processing error:', error);
+        console.error('[ERROR] Frontend query processing error:', error);
         addMessageToChat('ai', 'Network error: ' + error.message, {
             confidence: 0.1,
             isError: true
         });
     } finally {
         isProcessingQuery = false;
+        console.log('[INFO] Query processing unlocked');
         enableInput();
         hideTypingIndicator();
+        console.log('=== FRONTEND QUERY PROCESSING END ===\n');
     }
 }
 
@@ -1371,3 +1400,4 @@ window.viewPost = viewPost;
 window.filterCommunityPosts = filterCommunityPosts;
 window.viewSchemeDetails = viewSchemeDetails;
 window.markNotificationRead = markNotificationRead;
+window.updateLanguagePreference = updateLanguagePreference;

@@ -335,18 +335,32 @@ async def process_unified_query(
     current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Main endpoint for all agricultural queries - ChatGPT-like interface"""
+    print(f"\n=== UNIFIED QUERY ENDPOINT START ===")
+    print(f"Request received at: {datetime.now()}")
+    print(f"User authenticated: {current_user is not None}")
+    print(f"Text query: {text}")
+    print(f"Language requested: {language}")
+    print(f"Image uploaded: {image.filename if image and image.filename else 'None'}")
+    print(f"Voice data provided: {bool(voice_data)}")
+    print(f"Sensor data provided: {bool(sensor_data)}")
+    print(f"Location override: {location}")
+    
     try:
         user_id = current_user.id if current_user else "anonymous"
+        print(f"[INFO] Processing for user: {user_id}")
         
         # Process voice input if provided
         if voice_data and not text:
+            print(f"[INFO] Processing voice input...")
             voice_result = await voice_processing_service.process_voice_input(voice_data, language)
             if voice_result.get('success'):
                 text = voice_result.get('transcript', '')
+                print(f"[INFO] Voice transcript: {text}")
         
         # Handle image upload
         image_path = None
         if image and image.filename:
+            print(f"[INFO] Processing uploaded image: {image.filename}")
             file_extension = os.path.splitext(image.filename)[1]
             filename = f"{uuid.uuid4()}{file_extension}"
             image_path = os.path.join("uploads", filename)
@@ -354,14 +368,35 @@ async def process_unified_query(
             with open(image_path, "wb") as buffer:
                 content = await image.read()
                 buffer.write(content)
+            print(f"[INFO] Image saved to: {image_path}")
         
         # Parse sensor data if provided
         parsed_sensor_data = None
         if sensor_data:
+            print(f"[INFO] Parsing sensor data...")
             try:
                 parsed_sensor_data = json.loads(sensor_data)
-            except:
+                print(f"[INFO] Sensor data parsed successfully")
+            except Exception as e:
+                print(f"[WARNING] Sensor data parsing failed: {str(e)}")
                 parsed_sensor_data = None
+        
+        # Map language names to codes
+        language_mapping = {
+            'english': 'en',
+            'hindi': 'hi',
+            'bengali': 'bn',
+            'telugu': 'te',
+            'marathi': 'mr',
+            'tamil': 'ta',
+            'gujarati': 'gu',
+            'kannada': 'kn',
+            'malayalam': 'ml',
+            'punjabi': 'pa'
+        }
+        
+        language_code = language_mapping.get(language.lower(), language.lower())
+        print(f"[INFO] Language code mapped: {language} -> {language_code}")
         
         # Prepare inputs for unified processor
         inputs = {
@@ -370,26 +405,37 @@ async def process_unified_query(
             "voice_data": voice_data,
             "sensor_data": parsed_sensor_data,
             "location": location,
-            "language": language
+            "language": language_code
         }
+        
+        print(f"[INFO] Inputs prepared for unified processor")
         
         # Check if any input is provided
         if not any([text, image_path, voice_data]):
+            print(f"[ERROR] No valid input provided")
             return JSONResponse({
                 "success": False,
                 "error": "Please provide a text query, upload an image, or use voice input"
             }, status_code=400)
         
         # Process unified query
+        print(f"[INFO] Calling unified AI advisor...")
         result = await unified_ai_advisor.process_unified_query(user_id, inputs)
+        print(f"[INFO] Unified AI advisor response: {result.get('success', False)}")
         
         # Clean up uploaded image
         if image_path and os.path.exists(image_path):
+            print(f"[INFO] Cleaning up uploaded image: {image_path}")
             os.remove(image_path)
+        
+        print(f"[SUCCESS] Unified query processing completed")
+        print(f"=== UNIFIED QUERY ENDPOINT END ===\n")
         
         return JSONResponse(result)
         
     except Exception as e:
+        print(f"[ERROR] Unified query endpoint failed: {str(e)}")
+        print(f"=== UNIFIED QUERY ENDPOINT FAILED ===\n")
         return JSONResponse({
             "success": False,
             "error": str(e)

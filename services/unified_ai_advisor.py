@@ -18,9 +18,16 @@ class UnifiedAIAdvisor:
     
     async def process_unified_query(self, user_id: str, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Process unified query with intelligent routing and human-like response"""
+        print(f"\n=== UNIFIED AI ADVISOR PROCESSING START ===")
+        print(f"User ID: {user_id}")
+        print(f"Inputs received: {list(inputs.keys())}")
+        print(f"Text query: {inputs.get('text', 'None')}")
+        print(f"Language requested: {inputs.get('language', 'None')}")
+        
         try:
             # Check if user already has an active query
             if user_id in self.active_queries:
+                print(f"[ERROR] User {user_id} already has active query")
                 return {
                     'success': False,
                     'error': 'Please wait for your previous query to complete before asking another question.'
@@ -28,6 +35,7 @@ class UnifiedAIAdvisor:
             
             # Mark user as having active query
             self.active_queries.add(user_id)
+            print(f"[INFO] Added user {user_id} to active queries")
             
             try:
                 # Extract primary text query
@@ -38,7 +46,14 @@ class UnifiedAIAdvisor:
                 location_override = inputs.get('location')
                 language_override = inputs.get('language')
                 
+                print(f"[INFO] Extracted data:")
+                print(f"  - Text query: {text_query}")
+                print(f"  - Image path: {image_path}")
+                print(f"  - Language override: {language_override}")
+                print(f"  - Location override: {location_override}")
+                
                 if not text_query and not image_path:
+                    print(f"[ERROR] No text query or image provided")
                     return {
                         'success': False,
                         'error': 'Please provide a text query or upload an image'
@@ -49,58 +64,84 @@ class UnifiedAIAdvisor:
                 original_query = text_query
                 
                 if text_query:
+                    print(f"[INFO] Detecting language for: {text_query}")
                     original_language = detect_language(text_query)
+                    print(f"[INFO] Detected language: {original_language}")
+                    
+                    # Use language override if provided
+                    if language_override and language_override != 'en':
+                        original_language = language_override
+                        print(f"[INFO] Using language override: {original_language}")
+                    
                     if original_language != 'en':
+                        print(f"[INFO] Translating from {original_language} to English")
                         text_query = translate_text(text_query, original_language, 'en')
+                        print(f"[INFO] Translated query: {text_query}")
                 
                 # Analyze the query to understand intent
+                print(f"[INFO] Analyzing query intent...")
                 query_analysis = intelligent_query_router.analyze_query(text_query, user_id)
+                print(f"[INFO] Query analysis complete:")
+                print(f"  - Intent: {query_analysis.intent.value}")
+                print(f"  - Confidence: {query_analysis.confidence}")
+                print(f"  - Required APIs: {query_analysis.requires_apis}")
                 
                 # Override location if specified in query
                 if location_override:
                     query_analysis.extracted_info.locations = [location_override]
+                    print(f"[INFO] Location override applied: {location_override}")
                 
                 # Collect all necessary data (real data only)
+                print(f"[INFO] Collecting data from APIs...")
                 collected_data = await intelligent_data_collector.collect_data_for_query(query_analysis, user_id)
+                print(f"[INFO] Data collection complete:")
+                print(f"  - User context available: {bool(collected_data.get('user_context'))}")
+                print(f"  - API data sources: {list(collected_data.get('api_data', {}).keys())}")
                 
                 # Process image if provided
                 image_analysis = None
                 if image_path:
+                    print(f"[INFO] Processing image: {image_path}")
                     image_analysis = await self._process_image_input(image_path)
                     collected_data['image_analysis'] = image_analysis
+                    print(f"[INFO] Image analysis complete: {image_analysis.get('crop_detected', 'Unknown')}")
                 
                 # Generate personalized, human-like response
+                print(f"[INFO] Generating personalized response...")
                 response = await self._generate_personalized_response(
                     query_analysis, collected_data, user_id, original_query, original_language
                 )
+                print(f"[INFO] Response generated, length: {len(response.get('main_response', ''))}")
                 
                 # Store conversation memory for future context
                 if user_id != 'anonymous':
+                    print(f"[INFO] Storing conversation memory for user {user_id}")
                     await self._store_conversation_memory(user_id, query_analysis, collected_data, response, original_query)
                 
-                # Determine response language
-                response_language = language_override or original_language
+                # Determine response language - prioritize user's request
+                response_language = original_language
+                if language_override and language_override != 'en':
+                    response_language = language_override
+                
+                print(f"[INFO] Response language determined: {response_language}")
                 
                 # Translate response if needed
-                if response_language != 'en' and response_language != original_language:
+                if response_language != 'en':
+                    print(f"[INFO] Translating response from English to {response_language}")
                     try:
                         response['main_response'] = translate_text(response['main_response'], 'en', response_language)
+                        print(f"[INFO] Main response translated successfully")
                         if response.get('recommendations'):
                             response['recommendations'] = [
                                 translate_text(rec, 'en', response_language) for rec in response['recommendations']
                             ]
+                            print(f"[INFO] Recommendations translated successfully")
                     except Exception as e:
-                        print(f"Translation error: {str(e)}")
-                elif original_language != 'en':
-                    # Translate back to original language
-                    try:
-                        response['main_response'] = translate_text(response['main_response'], 'en', original_language)
-                        if response.get('recommendations'):
-                            response['recommendations'] = [
-                                translate_text(rec, 'en', original_language) for rec in response['recommendations']
-                            ]
-                    except Exception as e:
-                        print(f"Translation error: {str(e)}")
+                        print(f"[ERROR] Translation failed: {str(e)}")
+                        # Keep English response if translation fails
+                
+                print(f"[SUCCESS] Query processing completed successfully")
+                print(f"=== UNIFIED AI ADVISOR PROCESSING END ===\n")
                 
                 return {
                     'success': True,
@@ -112,16 +153,20 @@ class UnifiedAIAdvisor:
                     'apis_called': query_analysis.requires_apis,
                     'context_applied': bool(collected_data.get('user_context')),
                     'data_availability': response.get('data_availability', {}),
-                    'follow_up_suggestions': response.get('follow_up_suggestions', [])
+                    'follow_up_suggestions': response.get('follow_up_suggestions', []),
+                    'language_used': response_language,
+                    'original_language': original_language
                 }
                 
             finally:
                 # Always remove user from active queries
                 self.active_queries.discard(user_id)
+                print(f"[INFO] Removed user {user_id} from active queries")
             
         except Exception as e:
             self.active_queries.discard(user_id)
-            print(f"Unified query processing error: {str(e)}")
+            print(f"[ERROR] Unified query processing error: {str(e)}")
+            print(f"=== UNIFIED AI ADVISOR PROCESSING FAILED ===\n")
             return {
                 'success': False,
                 'error': f'Processing failed: {str(e)}',
@@ -210,6 +255,10 @@ class UnifiedAIAdvisor:
     def _build_personalized_context_prompt(self, query_analysis, collected_data: Dict, 
                                          original_query: str, original_language: str) -> str:
         """Build deeply personalized context prompt for LLM"""
+        print(f"\n=== BUILDING CONTEXT PROMPT ===")
+        print(f"Original query: {original_query}")
+        print(f"Original language: {original_language}")
+        
         prompt_parts = []
         
         # Enhanced system instruction
@@ -225,15 +274,17 @@ CRITICAL GUIDELINES:
 7. Never use generic advice - everything should be tailored to this specific farmer
 8. Explain WHY you're recommending something, not just WHAT to do
 9. Always consider the farmer's experience level and adjust complexity accordingly
-10. Respond in the same language the farmer used: {original_language}
+10. IMPORTANT: Respond in English only. The response will be translated to {original_language} after generation.
 11. PROFIT FOCUS: Every recommendation should consider financial impact and ROI
 12. HUMAN-LIKE COMMUNICATION: Use phrases like "Based on your farm's history..." or "Given your wheat is in vegetative stage..."
-13. ACTIONABLE STEPS: Provide step-by-step instructions with specific timing and quantities""")
+13. ACTIONABLE STEPS: Provide step-by-step instructions with specific timing and quantities
+14. NEVER respond in Hindi or any other language - always use English for generation""")
         
         # Farmer's personal context
         user_context = collected_data.get('user_context', {})
         if user_context.get('profile'):
             profile = user_context['profile']
+            print(f"[INFO] Adding user profile to context")
             prompt_parts.append(f"""
 YOUR FARMER'S PROFILE:
 - Name: {profile.get('name', 'Farmer')} from {profile.get('location', 'Unknown location')}
@@ -247,6 +298,7 @@ YOUR FARMER'S PROFILE:
         # Current farming status
         if user_context.get('farming'):
             farming = user_context['farming']
+            print(f"[INFO] Adding farming context to prompt")
             prompt_parts.append(f"""
 CURRENT FARMING STATUS:
 - Last Irrigation: {farming.get('last_irrigation', 'Unknown')}
@@ -257,6 +309,7 @@ CURRENT FARMING STATUS:
         # Recent conversation history for context
         if user_context.get('irrigation_history'):
             recent_irrigations = user_context['irrigation_history'][-3:]  # Last 3 irrigations
+            print(f"[INFO] Adding irrigation history to context")
             prompt_parts.append(f"""
 RECENT IRRIGATION HISTORY:
 {json.dumps(recent_irrigations, indent=2)}""")
@@ -265,7 +318,9 @@ RECENT IRRIGATION HISTORY:
         prompt_parts.append(f"""
 FARMER'S QUESTION: "{original_query}"
 DETECTED INTENT: {query_analysis.intent.value}
-LANGUAGE: {original_language}""")
+FARMER'S PREFERRED LANGUAGE: {original_language}
+
+IMPORTANT: Generate your response in English only. Do not use Hindi, Bengali, or any other language in your response. The system will handle translation to the farmer's preferred language ({original_language}) after you generate the response.""")
         
         # Real-time data availability and content
         api_data = collected_data.get('api_data', {})
@@ -275,6 +330,7 @@ LANGUAGE: {original_language}""")
         # Weather data
         if api_data.get('weather'):
             data_available.append("Real-time weather data")
+            print(f"[INFO] Adding weather data to context")
             prompt_parts.append("\nREAL-TIME WEATHER DATA:")
             for location, weather_info in api_data['weather'].items():
                 current = weather_info.get('current', {})
@@ -290,10 +346,12 @@ LANGUAGE: {original_language}""")
                     prompt_parts.append(f"- Next 3 days rainfall: {upcoming_rain:.1f}mm")
         else:
             data_unavailable.append("weather data")
+            print(f"[WARNING] Weather data not available")
         
         # Market data
         if api_data.get('market'):
             data_available.append("Real-time market prices")
+            print(f"[INFO] Adding market data to context")
             prompt_parts.append("\nREAL-TIME MARKET DATA:")
             for location, market_info in api_data['market'].items():
                 prompt_parts.append(f"\n{location.upper()} MARKET:")
@@ -305,10 +363,12 @@ LANGUAGE: {original_language}""")
                     prompt_parts.append(f"- {trend['crop']} trend: {direction} {trend['change_percent']:+.1f}% ({trend['recommendation']})")
         else:
             data_unavailable.append("market prices")
+            print(f"[WARNING] Market data not available")
         
         # Irrigation analysis
         if api_data.get('irrigation'):
             data_available.append("Soil moisture and irrigation analysis")
+            print(f"[INFO] Adding irrigation data to context")
             prompt_parts.append("\nIRRIGATION ANALYSIS:")
             for crop, irrigation_info in api_data['irrigation'].items():
                 prompt_parts.append(f"- {crop}: {irrigation_info['recommendation']} ({irrigation_info['water_amount']:.0f}L recommended)")
@@ -322,12 +382,14 @@ LANGUAGE: {original_language}""")
                     prompt_parts.append(f"  • Missing data: {', '.join(missing_irrigation_data)}")
         else:
             data_unavailable.append("soil moisture data")
+            print(f"[WARNING] Irrigation data not available")
         
         # Image analysis
         if collected_data.get('image_analysis'):
             img_analysis = collected_data['image_analysis']
             if not img_analysis.get('error'):
                 data_available.append("Image analysis")
+                print(f"[INFO] Adding image analysis to context")
                 prompt_parts.append(f"""
 IMAGE ANALYSIS RESULTS:
 - Crop Detected: {img_analysis['crop_detected']}
@@ -336,12 +398,15 @@ IMAGE ANALYSIS RESULTS:
 - Treatment Needed: {img_analysis['treatment']}""")
             else:
                 data_unavailable.append("image analysis")
+                print(f"[WARNING] Image analysis failed")
         
         # Data availability summary
         if data_available:
             prompt_parts.append(f"\nDATA AVAILABLE: {', '.join(data_available)}")
+            print(f"[INFO] Data available: {data_available}")
         if data_unavailable:
             prompt_parts.append(f"\nDATA UNAVAILABLE: {', '.join(data_unavailable)}")
+            print(f"[WARNING] Data unavailable: {data_unavailable}")
         
         # Enhanced response instructions
         prompt_parts.append(f"""
@@ -355,11 +420,18 @@ RESPONSE REQUIREMENTS:
 7. Provide step-by-step guidance they can follow immediately
 8. Explain the reasoning behind your recommendations
 9. Consider their experience level: {user_context.get('profile', {}).get('experience', 'unknown')}
-10. Respond in {original_language} language
+10. CRITICAL: Respond in English only. Do not use Hindi, Bengali, or any other language.
+11. The farmer's preferred language is {original_language}, but you must respond in English for proper translation.
 
-REMEMBER: You are their personal agricultural advisor who knows their farm intimately. Make them feel like this advice is crafted specifically for them.""")
+REMEMBER: You are their personal agricultural advisor who knows their farm intimately. Make them feel like this advice is crafted specifically for them.
+
+LANGUAGE INSTRUCTION: Generate your entire response in English. Do not include any Hindi, Bengali, or other language text. The translation to {original_language} will be handled separately.""")
         
-        return "\n".join(prompt_parts)
+        final_prompt = "\n".join(prompt_parts)
+        print(f"[INFO] Context prompt built, total length: {len(final_prompt)}")
+        print(f"=== CONTEXT PROMPT BUILDING END ===\n")
+        
+        return final_prompt
     
     def _extract_actionable_recommendations(self, collected_data: Dict) -> List[str]:
         """Extract specific, actionable recommendations"""

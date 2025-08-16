@@ -71,7 +71,12 @@ class EnhancedGeminiService:
     
     def get_text_response(self, prompt: str, temperature: float = 0.3) -> str:
         """Get text response from Gemini with enhanced error handling"""
+        print(f"\n=== GEMINI TEXT GENERATION START ===")
+        print(f"Prompt length: {len(prompt)}")
+        print(f"Temperature: {temperature}")
+        
         try:
+            print(f"[INFO] Sending request to Gemini...")
             response = self.text_model.generate_content(
                 prompt,
                 generation_config=genai.types.GenerationConfig(
@@ -81,12 +86,21 @@ class EnhancedGeminiService:
                 safety_settings=self.safety_settings
             )
             
+            print(f"[INFO] Gemini response received")
             if response.candidates and response.candidates[0].content:
-                return response.candidates[0].content.parts[0].text
+                response_text = response.candidates[0].content.parts[0].text
+                print(f"[SUCCESS] Response generated, length: {len(response_text)}")
+                print(f"[INFO] Response preview: {response_text[:200]}...")
+                print(f"=== GEMINI TEXT GENERATION END ===\n")
+                return response_text
             else:
+                print(f"[WARNING] No valid response from Gemini")
+                print(f"=== GEMINI TEXT GENERATION END ===\n")
                 return "I apologize, but I couldn't generate a response. Please try rephrasing your question."
                 
         except Exception as e:
+            print(f"[ERROR] Gemini text generation failed: {str(e)}")
+            print(f"=== GEMINI TEXT GENERATION FAILED ===\n")
             error_info = error_handler.handle_error(e, "gemini_text_generation")
             return f"Error: {error_info['user_message']}"
     

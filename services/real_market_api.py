@@ -117,35 +117,53 @@ class RealMarketAPI:
     
     def get_consolidated_prices(self, crops: List[str], location: str) -> Optional[List[Dict]]:
         """Get consolidated prices from multiple sources - returns None if unavailable"""
+        print(f"\n=== MARKET API DATA COLLECTION START ===")
+        print(f"Crops requested: {crops}")
+        print(f"Location: {location}")
+        
         try:
             cache_key = f"consolidated_prices_{'-'.join(crops)}_{location}"
             cached_data = offline_cache.get(cache_key)
             if cached_data:
+                print(f"[INFO] Using cached market data")
+                print(f"=== MARKET API DATA COLLECTION END ===\n")
                 return cached_data
             
             all_prices = []
             
             for crop in crops:
+                print(f"[INFO] Fetching prices for {crop}...")
                 # Try e-NAM first
                 enam_prices = self.get_enam_prices(crop, location)
                 
                 if enam_prices:
+                    print(f"[SUCCESS] Got e-NAM prices for {crop}: {len(enam_prices)} records")
                     all_prices.extend(enam_prices)
                 else:
+                    print(f"[WARNING] No e-NAM data for {crop}, trying AgMarkNet...")
                     # Try AgMarkNet as backup
                     agmarknet_prices = self.get_agmarknet_prices(crop, location)
                     if agmarknet_prices:
+                        print(f"[SUCCESS] Got AgMarkNet prices for {crop}: {len(agmarknet_prices)} records")
                         all_prices.extend(agmarknet_prices)
+                    else:
+                        print(f"[WARNING] No market data available for {crop}")
             
             if all_prices:
                 # Cache results for 2 hours
+                print(f"[INFO] Caching {len(all_prices)} price records")
                 offline_cache.set(cache_key, all_prices, expiry_hours=2)
+                print(f"[SUCCESS] Market data collection completed")
+                print(f"=== MARKET API DATA COLLECTION END ===\n")
                 return all_prices
             
+            print(f"[WARNING] No market data available for any requested crops")
+            print(f"=== MARKET API DATA COLLECTION END ===\n")
             return None
             
         except Exception as e:
-            print(f"Consolidated prices error: {str(e)}")
+            print(f"[ERROR] Consolidated prices error: {str(e)}")
+            print(f"=== MARKET API DATA COLLECTION FAILED ===\n")
             return None
     
     def get_price_trends(self, crops: List[str], days: int = 30) -> Optional[List[Dict]]:

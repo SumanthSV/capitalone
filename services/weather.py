@@ -21,7 +21,13 @@ class WeatherService:
     
     def get_current_weather(self, location: str) -> Optional[Dict]:
         """Get current weather - returns None if unavailable"""
+        print(f"\n=== WEATHER API DATA COLLECTION START ===")
+        print(f"Location requested: {location}")
+        print(f"API key available: {bool(self.api_key)}")
+        
         if not location.strip() or not self.api_key:
+            print(f"[WARNING] Missing location or API key")
+            print(f"=== WEATHER API DATA COLLECTION END ===\n")
             return None
             
         cache_key = f"weather_current_{location.lower()}"
@@ -29,9 +35,12 @@ class WeatherService:
         # Try cache first
         cached_data = offline_cache.get(cache_key)
         if cached_data:
+            print(f"[INFO] Using cached weather data")
+            print(f"=== WEATHER API DATA COLLECTION END ===\n")
             return cached_data
         
         try:
+            print(f"[INFO] Making API request to OpenWeather...")
             url = f"{self.base_url}/weather"
             params = {
                 "q": location,
@@ -40,9 +49,11 @@ class WeatherService:
             }
             
             response = requests.get(url, params=params, timeout=10)
+            print(f"[INFO] API response status: {response.status_code}")
             response.raise_for_status()
             
             data = response.json()
+            print(f"[SUCCESS] Weather data received for {location}")
             weather_data = {
                 "temperature": round(data["main"]["temp"], 1),
                 "humidity": data["main"]["humidity"],
@@ -57,11 +68,14 @@ class WeatherService:
             }
             
             # Cache for 1 hour
+            print(f"[INFO] Caching weather data for 1 hour")
             offline_cache.set(cache_key, weather_data, expiry_hours=1)
+            print(f"=== WEATHER API DATA COLLECTION END ===\n")
             return weather_data
             
         except Exception as e:
-            print(f"Weather API error: {str(e)}")
+            print(f"[ERROR] Weather API error: {str(e)}")
+            print(f"=== WEATHER API DATA COLLECTION FAILED ===\n")
             return None
     
     def get_weather_forecast(self, location: str, days: int = 7) -> Optional[List[Dict]]:

@@ -16,6 +16,11 @@ class IntelligentDataCollector:
     
     async def collect_data_for_query(self, query_analysis, user_id: str) -> Dict[str, Any]:
         """Collect all necessary real data for the query"""
+        print(f"\n=== DATA COLLECTION START ===")
+        print(f"User ID: {user_id}")
+        print(f"Query intent: {query_analysis.intent.value}")
+        print(f"Required APIs: {query_analysis.requires_apis}")
+        
         collected_data = {
             'user_context': {},
             'api_data': {},
@@ -24,18 +29,28 @@ class IntelligentDataCollector:
         
         try:
             # Collect user context
+            print(f"[INFO] Collecting user context...")
             collected_data['user_context'] = await self._collect_user_context(user_id, query_analysis.context_needed)
+            print(f"[INFO] User context collected: {list(collected_data['user_context'].keys())}")
             
             # Collect API data based on intent (real data only)
+            print(f"[INFO] Collecting real API data...")
             collected_data['api_data'] = await self._collect_real_api_data(query_analysis, collected_data['user_context'])
+            print(f"[INFO] API data collected: {list(collected_data['api_data'].keys())}")
             
             # Process insights from real data
+            print(f"[INFO] Processing insights...")
             collected_data['processed_insights'] = await self._process_real_insights(query_analysis, collected_data)
+            print(f"[INFO] Insights processed: {list(collected_data['processed_insights'].keys())}")
+            
+            print(f"[SUCCESS] Data collection completed")
+            print(f"=== DATA COLLECTION END ===\n")
             
             return collected_data
             
         except Exception as e:
-            print(f"Data collection error: {str(e)}")
+            print(f"[ERROR] Data collection failed: {str(e)}")
+            print(f"=== DATA COLLECTION FAILED ===\n")
             return collected_data
     
     async def _collect_user_context(self, user_id: str, context_needs: List[str]) -> Dict[str, Any]:
