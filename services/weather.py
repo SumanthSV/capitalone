@@ -24,9 +24,12 @@ class WeatherService:
         print(f"\n=== WEATHER API DATA COLLECTION START ===")
         print(f"Location requested: {location}")
         print(f"API key available: {bool(self.api_key)}")
+        print(f"API key valid: {self.api_key and self.api_key != 'your_openweather_api_key_here'}")
         
-        if not location.strip() or not self.api_key:
+        if not location.strip() or not self.api_key or self.api_key == "your_openweather_api_key_here":
             print(f"[WARNING] Missing location or API key")
+            if self.api_key == "your_openweather_api_key_here":
+                print(f"[WARNING] OpenWeather API key is placeholder - replace with actual key from https://openweathermap.org/api")
             print(f"=== WEATHER API DATA COLLECTION END ===\n")
             return None
             
@@ -80,7 +83,7 @@ class WeatherService:
     
     def get_weather_forecast(self, location: str, days: int = 7) -> Optional[List[Dict]]:
         """Get weather forecast - returns None if unavailable"""
-        if not location.strip() or not self.api_key:
+        if not location.strip() or not self.api_key or self.api_key == "your_openweather_api_key_here":
             return None
             
         cache_key = f"weather_forecast_{location.lower()}_{days}"

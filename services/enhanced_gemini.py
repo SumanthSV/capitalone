@@ -38,6 +38,12 @@ class EnhancedGeminiService:
                 error_code="GEMINI_API_KEY_MISSING"
             )
         
+        if self.api_key == "your_gemini_api_key_here":
+            raise APIError(
+                "Gemini API key is placeholder - replace with actual key from https://makersuite.google.com/app/apikey", 
+                error_code="GEMINI_API_KEY_PLACEHOLDER"
+            )
+        
         # Configure Gemini
         genai.configure(api_key=self.api_key)
         

@@ -7,6 +7,7 @@ from services.enhanced_gemini import enhanced_gemini
 from services.translation import translate_text, detect_language
 from services.contextual_memory import contextual_memory_service
 from services.offline_cache import offline_cache
+from services.enhanced_data_service import enhanced_data_service
 
 class UnifiedAIAdvisor:
     """Unified AI advisor that provides ChatGPT-like experience for agriculture"""
@@ -93,10 +94,47 @@ class UnifiedAIAdvisor:
                 
                 # Collect all necessary data (real data only)
                 print(f"[INFO] Collecting data from APIs...")
-                collected_data = await intelligent_data_collector.collect_data_for_query(query_analysis, user_id)
+                # Use enhanced data service instead of the problematic data collector
+                user_context_data = {}
+                if user_id != 'anonymous':
+                    from services.user_profiles import user_profile_service
+                    profile = user_profile_service.get_profile(user_id)
+                    if profile:
+                        user_context_data = {
+                            'profile': {
+                                'location': profile.location,
+                                'primary_crops': profile.primary_crops,
+                                'farm_size': profile.farm_size.value if hasattr(profile.farm_size, 'value') else str(profile.farm_size),
+                                'experience': profile.experience.value if hasattr(profile.experience, 'value') else str(profile.experience),
+                                'soil_type': profile.soil_type,
+                                'irrigation_type': profile.irrigation_type,
+                                'preferred_language': profile.preferred_language
+                            }
+                        }
+                
+                # Use enhanced data service for robust data collection
+                enhanced_result = await enhanced_data_service.get_comprehensive_data(text_query, user_context_data)
+                
+                # Convert enhanced result to expected format
+                collected_data = {
+                    'user_context': user_context_data,
+                    'api_data': {},
+                    'processed_insights': {}
+                }
+                
+                if enhanced_result.get('success'):
+                    # The enhanced service provides a complete response
+                    ai_response = enhanced_result.get('response', 'No response generated')
+                    data_sources = enhanced_result.get('data_sources', [])
+                    confidence_score = 0.8 if enhanced_result.get('data_sources') else 0.6
+                else:
+                    ai_response = enhanced_result.get('response', 'Unable to process your request')
+                    data_sources = []
+                    confidence_score = 0.3
+                
                 print(f"[INFO] Data collection complete:")
-                print(f"  - User context available: {bool(collected_data.get('user_context'))}")
-                print(f"  - API data sources: {list(collected_data.get('api_data', {}).keys())}")
+                print(f"  - Enhanced data service success: {enhanced_result.get('success')}")
+                print(f"  - Data sources: {data_sources}")
                 
                 # Process image if provided
                 image_analysis = None
@@ -108,9 +146,15 @@ class UnifiedAIAdvisor:
                 
                 # Generate personalized, human-like response
                 print(f"[INFO] Generating personalized response...")
-                response = await self._generate_personalized_response(
-                    query_analysis, collected_data, user_id, original_query, original_language
-                )
+                # Use the response from enhanced data service
+                response = {
+                    'main_response': ai_response,
+                    'recommendations': self._extract_recommendations_from_response(ai_response),
+                    'data_sources': data_sources,
+                    'confidence_score': confidence_score,
+                    'data_availability': enhanced_result.get('data_availability', {}),
+                    'follow_up_suggestions': self._generate_simple_follow_ups(query_analysis.intent)
+                }
                 print(f"[INFO] Response generated, length: {len(response.get('main_response', ''))}")
                 
                 # Store conversation memory for future context
@@ -172,6 +216,63 @@ class UnifiedAIAdvisor:
                 'error': f'Processing failed: {str(e)}',
                 'fallback_response': 'I apologize, but I encountered an error. Please try rephrasing your question or contact support.'
             }
+    
+    def _extract_recommendations_from_response(self, response: str) -> List[str]:
+        """Extract actionable recommendations from AI response"""
+        try:
+            recommendations = []
+            lines = response.split('\n')
+            
+            for line in lines:
+                line = line.strip()
+                # Look for bullet points, numbered lists, or recommendation keywords
+                if (line.startswith('•') or line.startswith('-') or line.startswith('*') or
+                    any(keyword in line.lower() for keyword in ['recommend', 'suggest', 'should', 'consider'])):
+                    clean_line = line.lstrip('•-* ').strip()
+                    if len(clean_line) > 10:  # Meaningful recommendation
+                        recommendations.append(clean_line)
+            
+            return recommendations[:5]  # Limit to 5 recommendations
+            
+        except Exception as e:
+            print(f"[ERROR] Recommendation extraction error: {str(e)}")
+            return []
+    
+    def _generate_simple_follow_ups(self, intent: QueryIntent) -> List[str]:
+        """Generate simple follow-up suggestions based on intent"""
+        try:
+            follow_ups = {
+                QueryIntent.SELLING_ADVICE: [
+                    "What's the best time to harvest my crops?",
+                    "How can I get better prices for my produce?",
+                    "Should I store my crops or sell immediately?"
+                ],
+                QueryIntent.MARKET_PRICE: [
+                    "Which market gives the best price for my crops?",
+                    "How do I negotiate better prices?",
+                    "What are the price trends for next month?"
+                ],
+                QueryIntent.IRRIGATION_ADVICE: [
+                    "How much water should I use for irrigation?",
+                    "What's the best time of day to irrigate?",
+                    "How can I make my irrigation more efficient?"
+                ],
+                QueryIntent.GENERAL_FARMING: [
+                    "What government schemes am I eligible for?",
+                    "How can I improve my crop yield?",
+                    "What are the best farming practices for my area?"
+                ]
+            }
+            
+            return follow_ups.get(intent, [
+                "Ask me about irrigation timing",
+                "Get market price information",
+                "Learn about government schemes"
+            ])
+            
+        except Exception as e:
+            print(f"[ERROR] Follow-up generation error: {str(e)}")
+            return []
     
     async def _process_image_input(self, image_path: str) -> Dict[str, Any]:
         """Process image input for disease detection"""

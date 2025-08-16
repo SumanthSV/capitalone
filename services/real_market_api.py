@@ -66,6 +66,10 @@ class RealMarketAPI:
                 print(f"[INFO] Set ENAM_API_KEY in your .env file to enable real market data")
                 return None
             
+            if enam_api_key == "your_enam_api_key_here":
+                print(f"[WARNING] e-NAM API key is placeholder - replace with actual key")
+                return None
+            
             print(f"[INFO] Fetching e-NAM data for {commodity} in {state}")
             
             # Correct API params
@@ -87,6 +91,7 @@ class RealMarketAPI:
             
             if response.status_code == 200:
                 data = response.json()
+                print(f"[DEBUG] e-NAM response structure: {list(data.keys()) if isinstance(data, dict) else 'Not a dict'}")
                 prices = self._parse_enam_data(data)
                 if prices:
                     print(f"[SUCCESS] Got {len(prices)} price records from e-NAM")
@@ -94,8 +99,10 @@ class RealMarketAPI:
                     return prices
                 else:
                     print(f"[WARNING] No price data found in e-NAM response")
+                    print(f"[DEBUG] Response data: {json.dumps(data, indent=2)[:500]}...")
             else:
                 print(f"[ERROR] e-NAM API returned status {response.status_code}")
+                print(f"[DEBUG] Response text: {response.text[:200]}...")
                 if response.status_code == 401:
                     print(f"[ERROR] Invalid e-NAM API key - check your ENAM_API_KEY")
                 elif response.status_code == 403:

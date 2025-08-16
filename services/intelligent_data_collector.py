@@ -137,17 +137,30 @@ class IntelligentDataCollector:
                         trends = real_market_api.get_price_trends(crops, days=30)
                         
                         # Only add if we have real data (not None or empty)
-                        if prices or trends:
+                        if prices and len(prices) > 0:
+                            # Filter out error entries
+                            valid_prices = [p for p in prices if p.get('source') != 'unavailable' and p.get('price', 0) > 0]
+                            if valid_prices:
                             market_data[location or 'general'] = {}
                             if prices:
                                 # Filter out error entries for API response
                                 valid_prices = [p for p in prices if p.get('source') != 'unavailable']
                                 if valid_prices:
-                                    market_data[location or 'general']['current_prices'] = valid_prices
-                                else:
-                                    print(f"[WARNING] No valid price data for {location}")
-                            if trends:
-                                market_data[location or 'general']['price_trends'] = trends
+                                market_data[location or 'general']['current_prices'] = valid_prices
+                                print(f"[SUCCESS] Added {len(valid_prices)} valid prices for {location}")
+                            else:
+                                print(f"[WARNING] No valid price data for {location}")
+                        
+                        if trends and len(trends) > 0:
+                            # Filter out low-confidence trends
+                            valid_trends = [t for t in trends if t.get('confidence', 0) > 0.3]
+                            if valid_trends:
+                                if location or 'general' not in market_data:
+                                    market_data[location or 'general'] = {}
+                                market_data[location or 'general']['price_trends'] = valid_trends
+                                print(f"[SUCCESS] Added {len(valid_trends)} valid trends for {location}")
+                        
+                        if market_data.get(location or 'general'):
                             market_data[location or 'general']['last_updated'] = datetime.now().isoformat()
                         else:
                             print(f"[WARNING] No market data available for {location}")
@@ -169,7 +182,9 @@ class IntelligentDataCollector:
                         current_weather = weather_service.get_current_weather(location)
                         forecast = weather_service.get_weather_forecast(location, days=7)
                         
-                        if current_weather or forecast:  # Only add if we have real data
+                        # Only add if we have valid data
+                        if (current_weather and isinstance(current_weather, dict) and current_weather.get('temperature')) or \
+                           (forecast and isinstance(forecast, list) and len(forecast) > 0):
                             weather_data[location or 'general'] = {}
                             if current_weather:
                                 weather_data[location or 'general']['current'] = current_weather
@@ -178,6 +193,7 @@ class IntelligentDataCollector:
                                     weather_data[location or 'general']['alerts'] = alerts
                             if forecast:
                                 weather_data[location or 'general']['forecast'] = forecast
+                            print(f"[SUCCESS] Weather data added for {location}")
                         else:
                             print(f"[WARNING] No weather data available for {location}")
                     except Exception as e:
