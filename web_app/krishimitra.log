@@ -242,3 +242,15 @@ Traceback (most recent call last):
               ^^^^^^^^^^^^^^^^^
 AttributeError: module 'bcrypt' has no attribute '__about__'
 2025-08-16 00:49:22,021 - services.task_queue - INFO - Task queue stopped
+2025-08-16 15:05:29,472 - services.task_queue - INFO - Task queue started
+2025-08-16 15:05:29,474 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-16 15:05:58,197 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "S:\capitalone\project\venv\Lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-08-16 15:15:17,880 - services.task_queue - INFO - Task queue stopped
+2025-08-16 15:15:21,204 - services.task_queue - INFO - Task queue started
+2025-08-16 15:15:21,206 - services.task_queue - ERROR - Periodic tasks error: day is out of range for month
+2025-08-16 15:16:22,742 - services.task_queue - INFO - Task queue stopped

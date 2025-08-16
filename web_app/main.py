@@ -146,13 +146,6 @@ async def home(request: Request):
 @app.get("/static/styles.css")
 async def get_styles():
     """Serve CSS with correct MIME type"""
-<<<<<<< HEAD
-=======
-    return FileResponse(
-<<<<<<< HEAD
-        path=os.path.join(static_dir, "styles.css"),
-=======
->>>>>>> 61522b07e776f406898d0d7cbc74ba1d0a77f088
     try:
         css_path = os.path.join(static_dir, "styles.css")
         if os.path.exists(css_path):
@@ -168,15 +161,8 @@ async def get_styles():
 
 @app.get("/static/app.js")
 async def get_app_js():
-<<<<<<< HEAD
     """Serve JavaScript with correct MIME type and error handling"""
-=======
     """Serve JavaScript with correct MIME type"""
-    return FileResponse(
-<<<<<<< HEAD
-        path=os.path.join(static_dir, "app.js"),
-=======
->>>>>>> 61522b07e776f406898d0d7cbc74ba1d0a77f088
     try:
         js_path = os.path.join(static_dir, "app.js")
         if os.path.exists(js_path):
@@ -186,7 +172,7 @@ async def get_app_js():
                 headers={"Cache-Control": "public, max-age=3600"}
             )
         else:
-<<<<<<< HEAD
+
             return HTMLResponse(
                 "/* JavaScript file not found */", 
                 media_type="application/javascript"
@@ -196,11 +182,8 @@ async def get_app_js():
             f"/* JavaScript error: {e} */", 
             media_type="application/javascript"
         )
-=======
-            return HTMLResponse("/* JavaScript file not found */", media_type="application/javascript")
     except Exception as e:
         return HTMLResponse(f"/* JavaScript error: {e} */", media_type="application/javascript")
->>>>>>> 61522b07e776f406898d0d7cbc74ba1d0a77f088
 
 # Authentication endpoints
 @app.post("/api/auth/register", response_model=Token)
@@ -347,7 +330,7 @@ async def process_unified_query(
     voice_data: str = Form(None),
     sensor_data: str = Form(None),
     location: str = Form(None),
-    language: str = Form("hindi"),
+    language: str = Form("English"),
     image: UploadFile = File(None),
     current_user: Optional[User] = Depends(get_current_user_optional)
 ):

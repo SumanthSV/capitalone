@@ -65,10 +65,10 @@ class RealMarketAPI:
                              commodity_name: str = "", state_name: str = "") -> Optional[List[Dict]]:
         """Get prices from AgMarkNet - returns None if unavailable"""
         try:
-            cache_key = f"agmarknet_prices_{commodity_id}_{state_id}_{market_id}"
-            cached_data = self._get_cache(cache_key)
-            if cached_data:
-                return cached_data
+            # cache_key = f"agmarknet_prices_{commodity_id}_{state_id}_{market_id}"
+            # cached_data = self._get_cache(cache_key)
+            # if cached_data:
+            #     return cached_data
             
             # Build URL for direct browser access
             url = (
@@ -79,8 +79,9 @@ class RealMarketAPI:
                 f"&Tx_CommodityHead={commodity_name}&Tx_StateHead={state_name}"
                 f"&Tx_DistrictHead=--Select--&Tx_MarketHead=--Select--"
             )
-
+            
             response = requests.get(url, timeout=10)
+            print(f"AgMarkNet request URL: {url}")
             if response.status_code != 200:
                 print(f"AgMarkNet request failed: {response.status_code}")
                 return None
