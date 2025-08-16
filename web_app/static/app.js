@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 // KrishiMitra - Unified AI Chat Application
 console.log('KrishiMitra JavaScript loaded');
 
@@ -15,9 +14,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function initializeApp() {
     console.log('initializeApp called');
-    setupEventListeners(); // Set up event listeners first
+    setupEventListeners();
     updateOnlineStatus();
-    checkAuthStatus(); // Check auth after listeners are set up
+    checkAuthStatus();
     
     // Monitor online/offline status
     window.addEventListener('online', updateOnlineStatus);
@@ -27,142 +26,93 @@ function initializeApp() {
 }
 
 function setupEventListeners() {
-    console.log('Setting up event listeners - SIMPLE VERSION');
+    console.log('Setting up event listeners');
     
-    // Wait a bit for DOM to be ready
+    // Wait for DOM to be ready
     setTimeout(() => {
+        // Set up form submission
+        const form = document.getElementById('unifiedForm');
+        if (form) {
+            console.log('Found unified form, adding submit handler');
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                console.log('Form submitted');
+                handleUnifiedQuery(e);
+            });
+        }
+        
         // Set up submit button click
         const submitBtn = document.getElementById('sendBtn');
         if (submitBtn) {
             console.log('Found submit button, adding click handler');
-            
-            submitBtn.onclick = function(e) {
-                console.log('SUBMIT BUTTON CLICKED!');
+            submitBtn.addEventListener('click', function(e) {
                 e.preventDefault();
-                e.stopPropagation();
+                console.log('Submit button clicked');
                 
-                // Get the text
                 const textQuery = document.getElementById('unifiedQuery').value?.trim();
-                console.log('Text query:', textQuery);
-                
                 if (!textQuery) {
-                    alert('Please enter a question!');
-                    return false;
+                    showMessage('Please enter a question!', 'warning');
+                    return;
                 }
                 
-                // Call the submission handler directly
-                submitQuery(textQuery);
-                return false;
-            };
-            
-            console.log('Submit button handler attached successfully');
-        } else {
-            console.error('Submit button not found!');
+                // Create synthetic form event
+                const form = document.getElementById('unifiedForm');
+                const syntheticEvent = {
+                    preventDefault: () => {},
+                    target: form,
+                    type: 'submit'
+                };
+                
+                handleUnifiedQuery(syntheticEvent);
+            });
         }
         
         // Set up Enter key on textarea
         const textarea = document.getElementById('unifiedQuery');
         if (textarea) {
-            textarea.onkeydown = function(e) {
+            textarea.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter' && !e.shiftKey) {
-                    console.log('Enter key pressed');
                     e.preventDefault();
-                    
-                    const textQuery = textarea.value?.trim();
-                    if (textQuery && !isProcessingQuery) {
-                        submitQuery(textQuery);
+                    if (!isProcessingQuery) {
+                        const form = document.getElementById('unifiedForm');
+                        const syntheticEvent = {
+                            preventDefault: () => {},
+                            target: form,
+                            type: 'submit'
+                        };
+                        handleUnifiedQuery(syntheticEvent);
                     }
                 }
-            };
+            });
         }
         
-        // Other button handlers
+        // Set up other button handlers
         const imageBtn = document.getElementById('imageBtn');
         if (imageBtn) {
-            imageBtn.onclick = () => {
+            imageBtn.addEventListener('click', () => {
                 document.getElementById('imageInput').click();
-            };
+            });
         }
         
         const voiceBtn = document.getElementById('voiceBtn');
         if (voiceBtn) {
-            voiceBtn.onclick = handleVoiceInput;
+            voiceBtn.addEventListener('click', handleVoiceInput);
         }
         
-    }, 1000); // Give more time for DOM to be ready
-}
-
-// Simple, direct submission function
-async function submitQuery(textQuery) {
-    console.log('submitQuery called with:', textQuery);
-    
-    if (isProcessingQuery) {
-        alert('Please wait for the previous query to complete');
-        return;
-    }
-    
-    try {
-        isProcessingQuery = true;
-        disableInput();
-        showTypingIndicator();
+        const sensorBtn = document.getElementById('sensorBtn');
+        if (sensorBtn) {
+            sensorBtn.addEventListener('click', toggleSensorData);
+        }
         
-        // Add user message to chat
-        addMessageToChat('user', textQuery);
-        
-        // Create form data
-        const formData = new FormData();
-        formData.append('text', textQuery);
-        formData.append('language', 'hindi');
-        
-        // Add image if selected
+        // Set up image input change handler
         const imageInput = document.getElementById('imageInput');
-        if (imageInput.files[0]) {
-            formData.append('image', imageInput.files[0]);
+        if (imageInput) {
+            imageInput.addEventListener('change', handleImageSelection);
         }
         
-        console.log('Sending API request to /api/unified-query');
+        console.log('Event listeners setup completed');
         
-        // Make API request
-        const response = await fetch('/api/unified-query', {
-            method: 'POST',
-            body: formData
-        });
-        
-        console.log('API response status:', response.status);
-        
-        if (!response.ok) {
-            throw new Error(`Server error: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        console.log('API result:', result);
-        
-        if (result.success) {
-            addMessageToChat('ai', result.response || 'Query processed successfully', {
-                confidence: result.confidence_score || 0.8
-            });
-            
-            // Clear the textarea
-            document.getElementById('unifiedQuery').value = '';
-            
-        } else {
-            addMessageToChat('ai', result.error || 'Sorry, there was an error processing your request', {
-                confidence: 0.1,
-                isError: true
-            });
-        }
-        
-    } catch (error) {
-        console.error('Error submitting query:', error);
-        addMessageToChat('ai', 'Network error: ' + error.message, {
-            confidence: 0.1,
-            isError: true
-        });
-    } finally {
-        isProcessingQuery = false;
-        enableInput();
-        hideTypingIndicator();
-    }
+    }, 500);
 }
 
 // Authentication Functions
@@ -170,26 +120,45 @@ function checkAuthStatus() {
     authToken = localStorage.getItem('authToken');
     currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
     
+    console.log('Auth status:', { hasToken: !!authToken, hasUser: !!currentUser });
+    
     if (authToken && currentUser) {
         updateUserInterface();
-        loadUserContext();
+        // Only load authenticated data if user is actually logged in
+        setTimeout(() => {
+            loadUserContext();
+            loadNotifications();
+        }, 1000);
     } else {
-        showAuthModal();
+        // Don't show auth modal immediately - let users try the app first
+        console.log('No authentication - user can still use basic features');
+        updateUserInterface(); // Update UI to show guest status
     }
 }
 
 function updateUserInterface() {
-    document.getElementById('userInfo').textContent = currentUser.name;
-    document.querySelector('.logout-btn').style.display = 'inline-block';
-    hideAuthModal();
+    const userInfo = document.getElementById('userInfo');
+    const logoutBtn = document.querySelector('.logout-btn');
+    
+    if (currentUser) {
+        userInfo.textContent = currentUser.name;
+        if (logoutBtn) logoutBtn.style.display = 'inline-block';
+        hideAuthModal();
+    } else {
+        userInfo.textContent = 'Guest User (Click to Login)';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        
+        // Make user info clickable to show auth modal
+        userInfo.style.cursor = 'pointer';
+        userInfo.onclick = showAuthModal;
+    }
 }
 
 function showAuthModal() {
-    // Make the modal non-blocking - allow users to interact with the app even without auth
     const authModal = document.getElementById('authModal');
     if (authModal) {
         authModal.style.display = 'flex';
-        // Add a close button or allow clicking outside to dismiss
+        // Allow clicking outside to dismiss
         authModal.addEventListener('click', function(e) {
             if (e.target === authModal) {
                 hideAuthModal();
@@ -199,7 +168,10 @@ function showAuthModal() {
 }
 
 function hideAuthModal() {
-    document.getElementById('authModal').style.display = 'none';
+    const authModal = document.getElementById('authModal');
+    if (authModal) {
+        authModal.style.display = 'none';
+    }
 }
 
 function switchAuthTab(tabName) {
@@ -247,7 +219,10 @@ async function handleLogin(event) {
             showMessage('Login successful!', 'success');
             
             // Load user context after login
-            setTimeout(loadUserContext, 500);
+            setTimeout(() => {
+                loadUserContext();
+                loadNotifications();
+            }, 500);
         } else {
             showMessage('Login failed: ' + (result.detail || 'Unknown error'), 'error');
         }
@@ -405,20 +380,21 @@ function logout() {
     authToken = null;
     currentUser = null;
     
-    document.getElementById('userInfo').textContent = 'Guest User';
-    document.querySelector('.logout-btn').style.display = 'none';
+    updateUserInterface();
     
     // Clear chat history
     chatHistory = [];
     updateChatDisplay();
     
     showMessage('Logged out successfully', 'success');
-    showAuthModal();
 }
 
 // Farming Context Functions
 async function loadUserContext() {
-    if (!authToken) return;
+    if (!authToken) {
+        console.log('No auth token - skipping user context load');
+        return;
+    }
     
     try {
         const response = await fetch('/api/context/farming', {
@@ -426,6 +402,12 @@ async function loadUserContext() {
                 'Authorization': `Bearer ${authToken}`
             }
         });
+        
+        if (response.status === 401) {
+            console.log('Unauthorized - clearing invalid token');
+            logout();
+            return;
+        }
         
         const result = await response.json();
         
@@ -441,11 +423,17 @@ async function loadUserContext() {
 }
 
 function showFarmingContextModal() {
-    document.getElementById('farmingContextModal').style.display = 'flex';
+    const modal = document.getElementById('farmingContextModal');
+    if (modal) {
+        modal.style.display = 'flex';
+    }
 }
 
 function hideFarmingContextModal() {
-    document.getElementById('farmingContextModal').style.display = 'none';
+    const modal = document.getElementById('farmingContextModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
 }
 
 async function saveFarmingContext(event) {
@@ -518,7 +506,7 @@ function displayUserContext(context) {
 
 // Main Query Processing
 async function handleUnifiedQuery(event) {
-    console.log('handleUnifiedQuery called', event);
+    console.log('handleUnifiedQuery called');
     
     try {
         if (event && typeof event.preventDefault === 'function') {
@@ -532,30 +520,21 @@ async function handleUnifiedQuery(event) {
         
         console.log('Processing query started...');
         
-        // Get the form - handle both form submission and direct calls
-        let form;
-        if (event && event.target && event.target.tagName === 'FORM') {
-            form = event.target;
-        } else {
-            form = document.getElementById('unifiedForm');
-        }
-        
+        // Get form data
+        const form = document.getElementById('unifiedForm');
         if (!form) {
             console.error('Form not found!');
             showMessage('Error: Form not found', 'error');
             return;
         }
         
-        console.log('Form found, creating FormData...');
         const formData = new FormData(form);
-        const textQuery = formData.get('text')?.trim() || document.getElementById('unifiedQuery').value?.trim();
-        const imageFile = formData.get('image') || document.getElementById('imageInput').files[0];
+        const textQuery = document.getElementById('unifiedQuery').value?.trim();
+        const imageFile = document.getElementById('imageInput').files[0];
         
-        console.log('Form data extracted:', { 
+        console.log('Form data:', { 
             textQuery: textQuery || 'empty', 
-            imageFile: imageFile ? imageFile.name : 'none',
-            hasVoiceData: !!formData.get('voice_data'),
-            hasSensorData: !!formData.get('sensor_data')
+            imageFile: imageFile ? imageFile.name : 'none'
         });
         
         // Validate input
@@ -569,8 +548,6 @@ async function handleUnifiedQuery(event) {
         disableInput();
         showTypingIndicator();
         
-        console.log('Adding user message to chat...');
-        
         // Add user message to chat
         if (textQuery) {
             addMessageToChat('user', textQuery);
@@ -579,117 +556,74 @@ async function handleUnifiedQuery(event) {
             addMessageToChat('user', `📷 Uploaded image: ${imageFile.name}`);
         }
         
-        console.log('User message added, preparing API request...');
+        // Prepare form data for API
+        const apiFormData = new FormData();
+        apiFormData.append('text', textQuery);
+        apiFormData.append('language', 'hindi');
         
-        // Ensure FormData has the text value
-        if (textQuery && !formData.has('text')) {
-            formData.set('text', textQuery);
+        if (imageFile) {
+            apiFormData.append('image', imageFile);
         }
         
-        // Ensure FormData has the image file if selected
-        if (imageFile && !formData.has('image')) {
-            formData.set('image', imageFile);
+        // Add sensor data if active
+        const sensorDataInput = document.getElementById('sensorData');
+        if (sensorDataInput && sensorDataInput.value) {
+            apiFormData.append('sensor_data', sensorDataInput.value);
         }
-    
-    try {
-        console.log('Preparing to send API request...');
         
+        console.log('Sending API request...');
+        
+        // Prepare headers
         const headers = {};
         if (authToken) {
             headers['Authorization'] = `Bearer ${authToken}`;
-            console.log('Using authentication token');
-        } else {
-            console.log('No authentication token - using anonymous access');
         }
         
-        console.log('Sending request to /api/unified-query with form data:', formData);
-        
-        console.log('Sending request to API...');
+        // Make API request
         const response = await fetch('/api/unified-query', {
             method: 'POST',
             headers: headers,
-            body: formData
+            body: apiFormData
         });
         
-        console.log('API response received - Status:', response.status);
-        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+        console.log('API response status:', response.status);
         
         if (!response.ok) {
-            console.error('HTTP error:', response.status, response.statusText);
             const errorText = await response.text();
-            console.error('Error response body:', errorText);
-            
-            addMessageToChat('ai', `Server error: ${response.status} ${response.statusText}. Please try again.`, {
-                confidence: 0.1,
-                isError: true
-            });
-            return;
+            console.error('API error:', response.status, errorText);
+            throw new Error(`Server error: ${response.status}`);
         }
         
         const result = await response.json();
-        console.log('API response result:', result);
+        console.log('API result:', result);
         
         if (result.success) {
-            console.log('Query processed successfully');
-            console.log('AI response:', result.response);
-            
-            // Add AI response to chat
-            addMessageToChat('ai', result.response || 'I received your query and processed it successfully.', {
+            addMessageToChat('ai', result.response || 'Query processed successfully', {
                 confidence: result.confidence_score || 0.8,
                 dataSources: result.data_sources || [],
                 recommendations: result.recommendations || [],
-                dataAvailability: result.data_availability || {},
                 followUpSuggestions: result.follow_up_suggestions || []
             });
             
-            console.log('AI response added to chat');
-            
             // Clear form
-            const form = document.getElementById('unifiedForm');
-            if (form) {
-                form.reset();
-            }
-            
-            // Clear additional data
-            const sensorDataInput = document.getElementById('sensorData');
-            const voiceDataInput = document.getElementById('voiceData');
-            
+            document.getElementById('unifiedQuery').value = '';
+            document.getElementById('imageInput').value = '';
             if (sensorDataInput) sensorDataInput.value = '';
-            if (voiceDataInput) voiceDataInput.value = '';
-            
-            console.log('Form cleared');
             
         } else {
-            console.error('API returned error:', result.error);
-            const errorMessage = result.error || 'I apologize, but I encountered an error processing your request.';
-            addMessageToChat('ai', errorMessage, {
+            addMessageToChat('ai', result.error || 'Sorry, there was an error processing your request', {
                 confidence: 0.1,
                 isError: true
             });
         }
         
     } catch (error) {
-        console.error('Network/fetch error:', error);
-        console.error('Error details:', error.stack);
-        const errorMessage = `I apologize, but I encountered a network error: ${error.message}. Please check your connection and try again.`;
-        addMessageToChat('ai', errorMessage, {
+        console.error('Query processing error:', error);
+        addMessageToChat('ai', 'Network error: ' + error.message, {
             confidence: 0.1,
             isError: true
         });
     } finally {
-        // Re-enable input
-        console.log('Re-enabling input controls...');
-        isProcessingQuery = false;
-        enableInput();
-        hideTypingIndicator();
-        console.log('Query processing completed');
-    }
-    
-    } catch (outerError) {
-        console.error('Outer error in handleUnifiedQuery:', outerError);
-        showMessage('Unexpected error: ' + outerError.message, 'error');
-        
-        // Ensure we re-enable input even in case of outer errors
         isProcessingQuery = false;
         enableInput();
         hideTypingIndicator();
@@ -728,7 +662,7 @@ function addMessageToChat(sender, content, metadata = {}) {
             recommendationsHtml = `
                 <div class="response-actions">
                     ${metadata.recommendations.slice(0, 3).map(rec => 
-                        `<button class="response-action" onclick="setQuickQuery('${rec}')">${rec}</button>`
+                        `<button class="response-action" onclick="setQuickQuery('${rec.replace(/'/g, '&apos;')}')">${rec}</button>`
                     ).join('')}
                 </div>
             `;
@@ -740,7 +674,7 @@ function addMessageToChat(sender, content, metadata = {}) {
                 <div class="follow-up-suggestions">
                     <p><strong>You might also ask:</strong></p>
                     ${metadata.followUpSuggestions.slice(0, 2).map(suggestion => 
-                        `<button class="response-action" onclick="setQuickQuery('${suggestion}')">${suggestion}</button>`
+                        `<button class="response-action" onclick="setQuickQuery('${suggestion.replace(/'/g, '&apos;')}')">${suggestion}</button>`
                     ).join('')}
                 </div>
             `;
@@ -765,41 +699,52 @@ function addMessageToChat(sender, content, metadata = {}) {
 }
 
 function disableInput() {
-    document.getElementById('unifiedQuery').disabled = true;
-    document.getElementById('sendBtn').disabled = true;
-    document.getElementById('imageBtn').disabled = true;
-    document.getElementById('voiceBtn').disabled = true;
-    document.getElementById('sensorBtn').disabled = true;
+    const elements = ['unifiedQuery', 'sendBtn', 'imageBtn', 'voiceBtn', 'sensorBtn'];
+    elements.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.disabled = true;
+    });
     
     // Update send button
-    document.getElementById('sendBtn').innerHTML = '<div class="spinner" style="width: 20px; height: 20px; margin: 0;"></div>';
+    const sendBtn = document.getElementById('sendBtn');
+    if (sendBtn) {
+        sendBtn.innerHTML = '<div class="spinner" style="width: 20px; height: 20px; margin: 0;"></div>';
+    }
 }
 
 function enableInput() {
-    document.getElementById('unifiedQuery').disabled = false;
-    document.getElementById('sendBtn').disabled = false;
-    document.getElementById('imageBtn').disabled = false;
-    document.getElementById('voiceBtn').disabled = false;
-    document.getElementById('sensorBtn').disabled = false;
+    const elements = ['unifiedQuery', 'sendBtn', 'imageBtn', 'voiceBtn', 'sensorBtn'];
+    elements.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.disabled = false;
+    });
     
     // Restore send button
-    document.getElementById('sendBtn').innerHTML = '<span class="send-icon">➤</span>';
+    const sendBtn = document.getElementById('sendBtn');
+    if (sendBtn) {
+        sendBtn.innerHTML = '<span class="send-icon">➤</span>';
+    }
 }
 
 function showTypingIndicator() {
-    document.getElementById('typingIndicator').style.display = 'flex';
-    document.getElementById('chatHistory').scrollTop = document.getElementById('chatHistory').scrollHeight;
+    const indicator = document.getElementById('typingIndicator');
+    if (indicator) {
+        indicator.style.display = 'flex';
+        document.getElementById('chatHistory').scrollTop = document.getElementById('chatHistory').scrollHeight;
+    }
 }
 
 function hideTypingIndicator() {
-    document.getElementById('typingIndicator').style.display = 'none';
+    const indicator = document.getElementById('typingIndicator');
+    if (indicator) {
+        indicator.style.display = 'none';
+    }
 }
 
 // Image handling
 function handleImageSelection(event) {
     const file = event.target.files[0];
     if (file) {
-        // Show image preview
         const reader = new FileReader();
         reader.onload = function(e) {
             showMessage(`Image selected: ${file.name}`, 'info');
@@ -808,7 +753,7 @@ function handleImageSelection(event) {
     }
 }
 
-// Voice input (placeholder)
+// Voice input
 function handleVoiceInput() {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -849,7 +794,7 @@ function toggleSensorData() {
     const sensorDisplay = document.getElementById('sensorDataDisplay');
     const sensorBtn = document.getElementById('sensorBtn');
     
-    if (sensorDisplay.style.display === 'none') {
+    if (sensorDisplay.style.display === 'none' || !sensorDisplay.style.display) {
         sensorDisplay.style.display = 'block';
         sensorBtn.classList.add('active');
         refreshSensorData();
@@ -866,19 +811,28 @@ function toggleSensorData() {
 
 function refreshSensorData() {
     const sensorData = getSensorData();
-    document.getElementById('soilMoistureValue').textContent = sensorData.soil_moisture.toFixed(1) + '%';
-    document.getElementById('temperatureValue').textContent = sensorData.temperature.toFixed(1) + '°C';
-    document.getElementById('phValue').textContent = sensorData.ph.toFixed(1);
-    document.getElementById('humidityValue').textContent = sensorData.humidity.toFixed(1) + '%';
+    
+    const elements = {
+        'soilMoistureValue': sensorData.soil_moisture.toFixed(1) + '%',
+        'temperatureValue': sensorData.temperature.toFixed(1) + '°C',
+        'phValue': sensorData.ph.toFixed(1),
+        'humidityValue': sensorData.humidity.toFixed(1) + '%'
+    };
+    
+    Object.entries(elements).forEach(([id, value]) => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = value;
+    });
     
     // Update hidden input if sensor panel is active
-    if (document.getElementById('sensorDataDisplay').style.display !== 'none') {
+    const sensorDisplay = document.getElementById('sensorDataDisplay');
+    if (sensorDisplay && sensorDisplay.style.display !== 'none') {
         document.getElementById('sensorData').value = JSON.stringify(sensorData);
     }
 }
 
 function getSensorData() {
-    // Simulate realistic sensor readings (in production, this would call real IoT APIs)
+    // Simulate realistic sensor readings
     return {
         soil_moisture: 45 + Math.random() * 30, // 45-75%
         temperature: 22 + Math.random() * 15,   // 22-37°C
@@ -890,69 +844,11 @@ function getSensorData() {
 
 // Quick actions
 function setQuickQuery(query) {
-    document.getElementById('unifiedQuery').value = query;
-    document.getElementById('unifiedQuery').focus();
-}
-
-// Test function for debugging
-function testQuery() {
-    console.log('=== TEST QUERY DEBUG START ===');
-    const testQuestion = "What is the mandi price of rice in Karnataka";
-    
-    // Set the test question in the textarea
-    const queryInput = document.getElementById('unifiedQuery');
-    if (queryInput) {
-        queryInput.value = testQuestion;
-        console.log('Test question set in textarea:', testQuestion);
-    } else {
-        console.error('Query input textarea not found!');
-        return;
+    const textarea = document.getElementById('unifiedQuery');
+    if (textarea) {
+        textarea.value = query;
+        textarea.focus();
     }
-    
-    // Get the form
-    const form = document.getElementById('unifiedForm');
-    if (!form) {
-        console.error('Form not found!');
-        showMessage('Error: Form not found', 'error');
-        return;
-    }
-    
-    console.log('Form found:', form);
-    console.log('Form action:', form.action);
-    console.log('Form method:', form.method);
-    console.log('Form enctype:', form.enctype);
-    
-    // Check if handleUnifiedQuery function exists
-    if (typeof handleUnifiedQuery !== 'function') {
-        console.error('handleUnifiedQuery function not found!');
-        return;
-    }
-    
-    console.log('Calling handleUnifiedQuery directly with synthetic event...');
-    
-    // Create a synthetic event that mimics form submission
-    const syntheticEvent = {
-        preventDefault: function() { 
-            console.log('preventDefault called on synthetic event'); 
-        },
-        stopPropagation: function() { 
-            console.log('stopPropagation called on synthetic event'); 
-        },
-        target: form,
-        type: 'submit',
-        isTrusted: false
-    };
-    
-    try {
-        console.log('About to call handleUnifiedQuery...');
-        handleUnifiedQuery(syntheticEvent);
-        console.log('handleUnifiedQuery called successfully');
-    } catch (error) {
-        console.error('Error calling handleUnifiedQuery:', error);
-        showMessage('Error in handleUnifiedQuery: ' + error.message, 'error');
-    }
-    
-    console.log('=== TEST QUERY DEBUG END ===');
 }
 
 // Tab switching
@@ -982,6 +878,10 @@ function switchTab(tabName) {
     // Load tab-specific data
     if (tabName === 'community') {
         loadCommunityPosts();
+    } else if (tabName === 'schemes') {
+        loadGovernmentSchemes();
+    } else if (tabName === 'sensors') {
+        loadEnhancedSensorData();
     }
 }
 
@@ -1030,18 +930,233 @@ async function loadCommunityPosts() {
 function showCreatePostModal() {
     if (!authToken) {
         showMessage('Please login to create posts', 'warning');
+        showAuthModal();
         return;
     }
-    document.getElementById('createPostModal').style.display = 'flex';
+    const modal = document.getElementById('createPostModal');
+    if (modal) {
+        modal.style.display = 'flex';
+    }
 }
 
 function hideCreatePostModal() {
-    document.getElementById('createPostModal').style.display = 'none';
+    const modal = document.getElementById('createPostModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function viewPost(postId) {
+    // Placeholder for viewing post details
+    showMessage(`Viewing post: ${postId}`, 'info');
+}
+
+function filterCommunityPosts() {
+    // Placeholder for filtering posts
+    loadCommunityPosts();
+}
+
+// Government Schemes Functions
+async function loadGovernmentSchemes() {
+    if (!authToken) {
+        const container = document.getElementById('governmentSchemes');
+        if (container) {
+            container.innerHTML = `
+                <div class="no-schemes">
+                    <p>Please login to view personalized government schemes and subsidies.</p>
+                    <button onclick="showAuthModal()" class="submit-btn">Login Now</button>
+                </div>
+            `;
+        }
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/government-schemes', {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        const result = await response.json();
+        const container = document.getElementById('governmentSchemes');
+        
+        if (result.success && result.schemes.length > 0) {
+            container.innerHTML = result.schemes.map(scheme => `
+                <div class="scheme-card ${scheme.eligibility_status}">
+                    <div class="scheme-header">
+                        <h4>${scheme.name}</h4>
+                        <span class="eligibility-badge ${scheme.eligibility_status}">${scheme.eligibility_status.replace('_', ' ')}</span>
+                    </div>
+                    <p class="scheme-description">${scheme.description}</p>
+                    <div class="scheme-details">
+                        <span><strong>Type:</strong> ${scheme.scheme_type}</span>
+                        <span><strong>Agency:</strong> ${scheme.implementing_agency}</span>
+                        ${scheme.estimated_benefit ? `<span><strong>Benefit:</strong> ₹${scheme.estimated_benefit.toLocaleString()}</span>` : ''}
+                    </div>
+                    ${scheme.matching_criteria.length > 0 ? `
+                        <div class="matching-criteria">
+                            <h5>✅ You Meet These Criteria:</h5>
+                            <ul>
+                                ${scheme.matching_criteria.map(criteria => `<li>${criteria}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                    ${scheme.missing_criteria.length > 0 ? `
+                        <div class="missing-criteria">
+                            <h5>❌ Missing Requirements:</h5>
+                            <ul>
+                                ${scheme.missing_criteria.map(criteria => `<li>${criteria}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                    <div class="scheme-actions">
+                        <button class="view-details-btn" onclick="viewSchemeDetails('${scheme.scheme_id}')">View Details</button>
+                        ${scheme.website_url ? `<a href="${scheme.website_url}" target="_blank" class="apply-btn">Apply Online</a>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = '<div class="no-schemes">No applicable schemes found. Complete your farming profile for better recommendations.</div>';
+        }
+    } catch (error) {
+        document.getElementById('governmentSchemes').innerHTML = '<div class="no-schemes">Error loading schemes</div>';
+        console.error('Error loading government schemes:', error);
+    }
+}
+
+function viewSchemeDetails(schemeId) {
+    showMessage(`Viewing details for scheme: ${schemeId}`, 'info');
+}
+
+// Enhanced Sensor Functions
+async function loadEnhancedSensorData() {
+    const container = document.getElementById('enhancedSensorContainer');
+    
+    try {
+        // For demo purposes, show simulated sensor data
+        const sensorData = getSensorData();
+        
+        container.innerHTML = `
+            <div class="enhanced-sensor-display">
+                <div class="sensor-data-header">
+                    <h4>📊 Real-time Sensor Data</h4>
+                    <span class="data-quality simulated">Simulated</span>
+                </div>
+                
+                <div class="sensor-readings-grid">
+                    <div class="sensor-reading-card">
+                        <div class="sensor-type">Soil Moisture</div>
+                        <div class="sensor-value">${sensorData.soil_moisture.toFixed(1)}%</div>
+                        <div class="sensor-meta">
+                            <span>Field 1</span>
+                            <span>Just now</span>
+                        </div>
+                    </div>
+                    <div class="sensor-reading-card">
+                        <div class="sensor-type">Temperature</div>
+                        <div class="sensor-value">${sensorData.temperature.toFixed(1)}°C</div>
+                        <div class="sensor-meta">
+                            <span>Field 1</span>
+                            <span>Just now</span>
+                        </div>
+                    </div>
+                    <div class="sensor-reading-card">
+                        <div class="sensor-type">pH Level</div>
+                        <div class="sensor-value">${sensorData.ph.toFixed(1)}</div>
+                        <div class="sensor-meta">
+                            <span>Field 1</span>
+                            <span>Just now</span>
+                        </div>
+                    </div>
+                    <div class="sensor-reading-card">
+                        <div class="sensor-type">Humidity</div>
+                        <div class="sensor-value">${sensorData.humidity.toFixed(1)}%</div>
+                        <div class="sensor-meta">
+                            <span>Field 1</span>
+                            <span>Just now</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="sensor-insights">
+                    <h5>🧠 Intelligent Insights</h5>
+                    ${generateSensorInsights(sensorData)}
+                </div>
+            </div>
+        `;
+        
+    } catch (error) {
+        container.innerHTML = '<div class="no-schemes">Error loading sensor data</div>';
+        console.error('Error loading sensor data:', error);
+    }
+}
+
+function generateSensorInsights(sensorData) {
+    const insights = [];
+    
+    if (sensorData.soil_moisture < 30) {
+        insights.push(`
+            <div class="sensor-insight">
+                <h6>🚨 Low Soil Moisture Alert</h6>
+                <div class="insight-confidence">Confidence: High</div>
+                <p>Soil moisture is critically low at ${sensorData.soil_moisture.toFixed(1)}%. Immediate irrigation recommended.</p>
+                <ul class="insight-recommendations">
+                    <li>Start irrigation within 2 hours</li>
+                    <li>Check irrigation system for blockages</li>
+                    <li>Monitor plant stress signs</li>
+                </ul>
+            </div>
+        `);
+    } else if (sensorData.soil_moisture > 80) {
+        insights.push(`
+            <div class="sensor-insight">
+                <h6>⚠️ High Soil Moisture</h6>
+                <div class="insight-confidence">Confidence: Medium</div>
+                <p>Soil moisture is high at ${sensorData.soil_moisture.toFixed(1)}%. Risk of waterlogging.</p>
+                <ul class="insight-recommendations">
+                    <li>Avoid irrigation for 24-48 hours</li>
+                    <li>Ensure proper drainage</li>
+                    <li>Monitor for fungal diseases</li>
+                </ul>
+            </div>
+        `);
+    }
+    
+    if (sensorData.temperature > 35) {
+        insights.push(`
+            <div class="sensor-insight">
+                <h6>🌡️ High Temperature Alert</h6>
+                <div class="insight-confidence">Confidence: High</div>
+                <p>Temperature is high at ${sensorData.temperature.toFixed(1)}°C. Crops may experience heat stress.</p>
+                <ul class="insight-recommendations">
+                    <li>Increase irrigation frequency</li>
+                    <li>Provide shade protection</li>
+                    <li>Apply mulching</li>
+                </ul>
+            </div>
+        `);
+    }
+    
+    if (insights.length === 0) {
+        insights.push(`
+            <div class="sensor-insight">
+                <h6>✅ Normal Conditions</h6>
+                <div class="insight-confidence">Confidence: Medium</div>
+                <p>All sensor readings are within normal ranges. Continue regular monitoring.</p>
+            </div>
+        `);
+    }
+    
+    return insights.join('');
 }
 
 // Notifications
 async function loadNotifications() {
-    if (!authToken) return;
+    if (!authToken) {
+        console.log('No auth token - skipping notifications load');
+        return;
+    }
     
     try {
         const response = await fetch('/api/notifications', {
@@ -1049,6 +1164,12 @@ async function loadNotifications() {
                 'Authorization': `Bearer ${authToken}`
             }
         });
+        
+        if (response.status === 401) {
+            console.log('Unauthorized - clearing invalid token');
+            logout();
+            return;
+        }
         
         const result = await response.json();
         
@@ -1063,17 +1184,26 @@ async function loadNotifications() {
 
 function updateNotificationsBadge(notifications) {
     const unreadCount = notifications.filter(n => !n.read).length;
-    document.getElementById('notificationCount').textContent = unreadCount;
+    const countElement = document.getElementById('notificationCount');
+    const badgeElement = document.getElementById('notificationsBadge');
     
-    if (unreadCount > 0) {
-        document.getElementById('notificationsBadge').style.background = 'var(--error-color)';
-    } else {
-        document.getElementById('notificationsBadge').style.background = 'var(--primary-color)';
+    if (countElement) {
+        countElement.textContent = unreadCount;
+    }
+    
+    if (badgeElement) {
+        if (unreadCount > 0) {
+            badgeElement.style.background = 'var(--error-color)';
+        } else {
+            badgeElement.style.background = 'var(--primary-color)';
+        }
     }
 }
 
 function displayNotifications(notifications) {
     const container = document.getElementById('notificationsContent');
+    
+    if (!container) return;
     
     if (notifications.length === 0) {
         container.innerHTML = '<div class="no-notifications">No notifications</div>';
@@ -1091,7 +1221,27 @@ function displayNotifications(notifications) {
 
 function toggleNotifications() {
     const panel = document.getElementById('notificationsPanel');
-    panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    if (panel) {
+        panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    }
+}
+
+async function markNotificationRead(notificationId) {
+    if (!authToken) return;
+    
+    try {
+        await fetch(`/api/notifications/${notificationId}/read`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        // Reload notifications
+        loadNotifications();
+    } catch (error) {
+        console.error('Error marking notification as read:', error);
+    }
 }
 
 // Utility functions
@@ -1101,13 +1251,13 @@ function updateOnlineStatus() {
     const offlineIndicator = document.getElementById('offlineIndicator');
     
     if (navigator.onLine) {
-        statusDot.classList.remove('offline');
-        statusText.textContent = 'Online';
-        offlineIndicator.classList.remove('show');
+        if (statusDot) statusDot.classList.remove('offline');
+        if (statusText) statusText.textContent = 'Online';
+        if (offlineIndicator) offlineIndicator.classList.remove('show');
     } else {
-        statusDot.classList.add('offline');
-        statusText.textContent = 'Offline';
-        offlineIndicator.classList.add('show');
+        if (statusDot) statusDot.classList.add('offline');
+        if (statusText) statusText.textContent = 'Offline';
+        if (offlineIndicator) offlineIndicator.classList.add('show');
     }
 }
 
@@ -1155,6 +1305,8 @@ function showMessage(message, type = 'info') {
 function updateChatDisplay() {
     const chatHistoryElement = document.getElementById('chatHistory');
     
+    if (!chatHistoryElement) return;
+    
     // Keep welcome message and add any stored chat history
     const welcomeMessage = chatHistoryElement.querySelector('.welcome-message');
     chatHistoryElement.innerHTML = '';
@@ -1168,6 +1320,54 @@ function updateChatDisplay() {
         addMessageToChat(message.sender, message.content, message.metadata);
     });
 }
-=======
-{"code":"rate-limited","message":"You have hit the rate limit. Please upgrade to keep chatting.","providerLimitHit":false,"isRetryable":true}
->>>>>>> 5cb95f1756f99b9b6a413434887e60db00428edf
+
+// Test function for debugging
+function testQuery() {
+    console.log('=== TEST QUERY START ===');
+    const testQuestion = "What is the market price of rice in Karnataka?";
+    
+    const queryInput = document.getElementById('unifiedQuery');
+    if (queryInput) {
+        queryInput.value = testQuestion;
+        console.log('Test question set:', testQuestion);
+        
+        // Trigger the form submission
+        const form = document.getElementById('unifiedForm');
+        if (form) {
+            const syntheticEvent = {
+                preventDefault: () => {},
+                target: form,
+                type: 'submit'
+            };
+            
+            handleUnifiedQuery(syntheticEvent);
+        }
+    }
+    console.log('=== TEST QUERY END ===');
+}
+
+// Make functions globally available for HTML onclick handlers
+window.switchAuthTab = switchAuthTab;
+window.handleLogin = handleLogin;
+window.handleRegister = handleRegister;
+window.sendOTP = sendOTP;
+window.verifyOTP = verifyOTP;
+window.logout = logout;
+window.saveFarmingContext = saveFarmingContext;
+window.showCreatePostModal = showCreatePostModal;
+window.hideCreatePostModal = hideCreatePostModal;
+window.showFarmingContextModal = showFarmingContextModal;
+window.hideFarmingContextModal = hideFarmingContextModal;
+window.toggleNotifications = toggleNotifications;
+window.switchTab = switchTab;
+window.setQuickQuery = setQuickQuery;
+window.testQuery = testQuery;
+window.loadGovernmentSchemes = loadGovernmentSchemes;
+window.loadEnhancedSensorData = loadEnhancedSensorData;
+window.refreshSensorData = refreshSensorData;
+window.toggleSensorData = toggleSensorData;
+window.handleVoiceInput = handleVoiceInput;
+window.viewPost = viewPost;
+window.filterCommunityPosts = filterCommunityPosts;
+window.viewSchemeDetails = viewSchemeDetails;
+window.markNotificationRead = markNotificationRead;

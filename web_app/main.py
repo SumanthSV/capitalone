@@ -16,8 +16,8 @@ import mimetypes
 # Import your existing system
 import sys
 sys.path.append('..')
-from graph import workflow
-from agents.orchestrator import AgentState
+# from graph import workflow
+# from agents.orchestrator import AgentState
 from services.notification_service import notification_service
 from services.user_profiles import user_profile_service, UserInteraction
 from services.community_features import community_service
@@ -37,12 +37,12 @@ from services.advanced_reasoning import advanced_reasoning_engine, ReasoningType
 from services.government_schemes_api import government_schemes_api
 from services.enhanced_voice_processing import voice_processing_service
 from services.enhanced_sensor_integration import enhanced_sensor_integration
-<<<<<<< HEAD
+
 from typing import Optional, Dict
-=======
+
 
 from typing import Optional
->>>>>>> 5cb95f1756f99b9b6a413434887e60db00428edf
+
 
 # Pydantic models
 class UserCreate(BaseModel):
@@ -101,18 +101,27 @@ os.makedirs("uploads", exist_ok=True)
 mimetypes.add_type('text/css', '.css')
 mimetypes.add_type('application/javascript', '.js')
 
-<<<<<<< HEAD
 # Get base directory for web_app
-web_app_dir = os.path.dirname(os.path.abspath(__file__))
-static_dir = os.path.join(web_app_dir, "static")
-template_dir = os.path.join(web_app_dir, "templates")
+try:
+    web_app_dir = os.path.dirname(os.path.abspath(__file__))
+    static_dir = os.path.join(web_app_dir, "static")
+    template_dir = os.path.join(web_app_dir, "templates")
+    
+    # Ensure directories exist
+    os.makedirs(static_dir, exist_ok=True)
+    os.makedirs(template_dir, exist_ok=True)
+    
+except Exception as e:
+    print(f"Directory setup error: {e}")
+    # Fallback to relative paths
+    static_dir = "static"
+    template_dir = "templates"
 
 # Mount static files
 app.mount("/static", StaticFiles(directory=static_dir, html=True), name="static")
-=======
+
 # Mount static files
 app.mount("/static", StaticFiles(directory="static", html=True), name="static")
->>>>>>> 5cb95f1756f99b9b6a413434887e60db00428edf
 
 # Templates
 templates = Jinja2Templates(directory=template_dir)
@@ -137,28 +146,40 @@ async def home(request: Request):
 @app.get("/static/styles.css")
 async def get_styles():
     """Serve CSS with correct MIME type"""
-    return FileResponse(
-<<<<<<< HEAD
-        path=os.path.join(static_dir, "styles.css"),
-=======
-        path="static/styles.css",
->>>>>>> 5cb95f1756f99b9b6a413434887e60db00428edf
-        media_type="text/css",
-        headers={"Cache-Control": "public, max-age=3600"}
-    )
+    try:
+        css_path = os.path.join(static_dir, "styles.css")
+        if os.path.exists(css_path):
+            return FileResponse(
+                path=css_path,
+                media_type="text/css",
+                headers={"Cache-Control": "public, max-age=3600"}
+            )
+        else:
+            return HTMLResponse("/* CSS file not found */", media_type="text/css")
+    except Exception as e:
+        return HTMLResponse(f"/* CSS error: {e} */", media_type="text/css")
 
 @app.get("/static/app.js")
 async def get_app_js():
-    """Serve JavaScript with correct MIME type"""
-    return FileResponse(
-<<<<<<< HEAD
-        path=os.path.join(static_dir, "app.js"),
-=======
-        path="static/app.js",
->>>>>>> 5cb95f1756f99b9b6a413434887e60db00428edf
-        media_type="application/javascript",
-        headers={"Cache-Control": "public, max-age=3600"}
-    )
+    """Serve JavaScript with correct MIME type and error handling"""
+    try:
+        js_path = os.path.join(static_dir, "app.js")
+        if os.path.exists(js_path):
+            return FileResponse(
+                path=js_path,
+                media_type="application/javascript",
+                headers={"Cache-Control": "public, max-age=3600"}
+            )
+        else:
+            return HTMLResponse(
+                "/* JavaScript file not found */", 
+                media_type="application/javascript"
+            )
+    except Exception as e:
+        return HTMLResponse(
+            f"/* JavaScript error: {e} */", 
+            media_type="application/javascript"
+        )
 
 # Authentication endpoints
 @app.post("/api/auth/register", response_model=Token)
