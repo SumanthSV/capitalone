@@ -76,6 +76,11 @@ class EnhancedGeminiService:
         print(f"Temperature: {temperature}")
         
         try:
+            if not prompt or not prompt.strip():
+                print(f"[ERROR] Empty prompt provided")
+                print(f"=== GEMINI TEXT GENERATION END ===\n")
+                return "I need a question or topic to help you with. Please ask me something about farming."
+            
             print(f"[INFO] Sending request to Gemini...")
             response = self.text_model.generate_content(
                 prompt,
@@ -96,13 +101,21 @@ class EnhancedGeminiService:
             else:
                 print(f"[WARNING] No valid response from Gemini")
                 print(f"=== GEMINI TEXT GENERATION END ===\n")
-                return "I apologize, but I couldn't generate a response. Please try rephrasing your question."
+                return "I apologize, but I couldn't generate a response right now. This might be due to API limitations or content filtering. Please try rephrasing your question or ask about a different farming topic."
                 
         except Exception as e:
             print(f"[ERROR] Gemini text generation failed: {str(e)}")
             print(f"=== GEMINI TEXT GENERATION FAILED ===\n")
-            error_info = error_handler.handle_error(e, "gemini_text_generation")
-            return f"Error: {error_info['user_message']}"
+            
+            # Provide more helpful error messages
+            if "API_KEY" in str(e).upper():
+                return "I'm having trouble connecting to the AI service. Please check that your Gemini API key is properly configured."
+            elif "QUOTA" in str(e).upper() or "RATE" in str(e).upper():
+                return "I'm currently experiencing high demand. Please try again in a few moments."
+            elif "SAFETY" in str(e).upper() or "BLOCKED" in str(e).upper():
+                return "I couldn't process your request due to content guidelines. Please try rephrasing your farming question."
+            else:
+                return f"I'm experiencing a technical issue right now. Please try again or ask a different farming question. Error: {str(e)[:100]}"
     
     def analyze_image(self, image_path: str) -> Dict[str, Any]:
         """Analyze agricultural image with enhanced prompting"""

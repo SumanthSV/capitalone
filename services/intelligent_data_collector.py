@@ -66,12 +66,14 @@ class IntelligentDataCollector:
                         'location': profile.location,
                         'primary_crops': profile.primary_crops,
                         'secondary_crops': profile.secondary_crops,
-                        'farm_size': profile.farm_size.value,
-                        'experience': profile.experience.value,
+                        'farm_size': profile.farm_size.value if hasattr(profile.farm_size, 'value') else str(profile.farm_size),
+                        'experience': profile.experience.value if hasattr(profile.experience, 'value') else str(profile.experience),
                         'soil_type': profile.soil_type,
                         'irrigation_type': profile.irrigation_type,
                         'preferred_language': profile.preferred_language
                     }
+                else:
+                    print(f"[WARNING] No user profile found for user {user_id}")
             
             if 'farming_context' in context_needs:
                 farming_context = contextual_memory_service.get_farming_context(user_id)
@@ -83,24 +85,29 @@ class IntelligentDataCollector:
                         'planting_dates': {k: v.isoformat() for k, v in farming_context.planting_dates.items()},
                         'harvest_dates': {k: v.isoformat() for k, v in farming_context.harvest_dates.items()}
                     }
+                else:
+                    print(f"[WARNING] No farming context found for user {user_id}")
             
             if 'irrigation_history' in context_needs:
                 irrigation_history = contextual_memory_service.get_irrigation_history(user_id, days=30)
-                context['irrigation_history'] = [
-                    {
-                        'crop': h.crop_name,
-                        'date': h.irrigation_date.isoformat(),
-                        'amount': h.water_amount_liters,
-                        'effectiveness': h.effectiveness_rating,
-                        'method': h.irrigation_method
-                    }
-                    for h in irrigation_history[-5:]  # Last 5 irrigations
-                ]
+                if irrigation_history:
+                    context['irrigation_history'] = [
+                        {
+                            'crop': h.crop_name,
+                            'date': h.irrigation_date.isoformat(),
+                            'amount': h.water_amount_liters,
+                            'effectiveness': h.effectiveness_rating,
+                            'method': h.irrigation_method
+                        }
+                        for h in irrigation_history[-5:]  # Last 5 irrigations
+                    ]
+                else:
+                    print(f"[WARNING] No irrigation history found for user {user_id}")
             
             return context
             
         except Exception as e:
-            print(f"User context collection error: {str(e)}")
+            print(f"[ERROR] User context collection error: {str(e)}")
             return context
     
     async def _collect_real_api_data(self, query_analysis, user_context: Dict) -> Dict[str, Any]:
@@ -109,41 +116,56 @@ class IntelligentDataCollector:
         
         try:
             # Determine locations to query
-            locations = query_analysis.extracted_info.locations
+            locations = query_analysis.extracted_info.locations or []
             if not locations and user_context.get('profile', {}).get('location'):
                 locations = [user_context['profile']['location']]
             
             # Determine crops to query
-            crops = query_analysis.extracted_info.crops
+            crops = query_analysis.extracted_info.crops or []
             if not crops and user_context.get('profile', {}).get('primary_crops'):
                 crops = user_context['profile']['primary_crops']
+            
+            print(f"[INFO] Querying for crops: {crops}, locations: {locations}")
             
             # Market data collection (real data only)
             if 'market_api' in query_analysis.requires_apis and crops:
                 market_data = {}
                 for location in locations or ['']:
                     try:
+                        print(f"[INFO] Fetching market data for {location}...")
                         prices = real_market_api.get_consolidated_prices(crops, location)
                         trends = real_market_api.get_price_trends(crops, days=30)
                         
-                        if prices or trends:  # Only add if we have real data
+                        # Only add if we have real data (not None or empty)
+                        if prices or trends:
                             market_data[location or 'general'] = {}
                             if prices:
-                                market_data[location or 'general']['current_prices'] = prices
+                                # Filter out error entries for API response
+                                valid_prices = [p for p in prices if p.get('source') != 'unavailable']
+                                if valid_prices:
+                                    market_data[location or 'general']['current_prices'] = valid_prices
+                                else:
+                                    print(f"[WARNING] No valid price data for {location}")
                             if trends:
                                 market_data[location or 'general']['price_trends'] = trends
                             market_data[location or 'general']['last_updated'] = datetime.now().isoformat()
+                        else:
+                            print(f"[WARNING] No market data available for {location}")
                     except Exception as e:
-                        print(f"Market data error for {location}: {str(e)}")
+                        print(f"[ERROR] Market data error for {location}: {str(e)}")
                 
                 if market_data:  # Only add if we have real data
                     api_data['market'] = market_data
+                    print(f"[SUCCESS] Market data collected for {len(market_data)} locations")
+                else:
+                    print(f"[WARNING] No market data collected from any source")
             
             # Weather data collection (real data only)
             if 'weather_api' in query_analysis.requires_apis:
                 weather_data = {}
                 for location in locations or ['']:
                     try:
+                        print(f"[INFO] Fetching weather data for {location}...")
                         current_weather = weather_service.get_current_weather(location)
                         forecast = weather_service.get_weather_forecast(location, days=7)
                         
@@ -156,11 +178,16 @@ class IntelligentDataCollector:
                                     weather_data[location or 'general']['alerts'] = alerts
                             if forecast:
                                 weather_data[location or 'general']['forecast'] = forecast
+                        else:
+                            print(f"[WARNING] No weather data available for {location}")
                     except Exception as e:
-                        print(f"Weather data error for {location}: {str(e)}")
+                        print(f"[ERROR] Weather data error for {location}: {str(e)}")
                 
                 if weather_data:  # Only add if we have real data
                     api_data['weather'] = weather_data
+                    print(f"[SUCCESS] Weather data collected for {len(weather_data)} locations")
+                else:
+                    print(f"[WARNING] No weather data collected from any source")
             
             # Irrigation engine data (real data only)
             if 'irrigation_engine' in query_analysis.requires_apis and user_context.get('profile'):
@@ -172,6 +199,7 @@ class IntelligentDataCollector:
                 
                 for crop in crops or profile.get('primary_crops', []):
                     try:
+                        print(f"[INFO] Getting irrigation decision for {crop}...")
                         decision = smart_irrigation_engine.make_irrigation_decision(
                             user_id=user_context.get('profile', {}).get('user_id', user_id),
                             crop_name=crop,
@@ -190,16 +218,22 @@ class IntelligentDataCollector:
                                 'next_check_hours': decision.next_check_hours,
                                 'data_availability': decision.data_availability
                             }
+                            print(f"[SUCCESS] Irrigation decision for {crop}: {decision.recommendation.value}")
+                        else:
+                            print(f"[WARNING] Insufficient data for irrigation decision on {crop}")
                     except Exception as e:
-                        print(f"Irrigation decision error for {crop}: {str(e)}")
+                        print(f"[ERROR] Irrigation decision error for {crop}: {str(e)}")
                 
                 if irrigation_data:  # Only add if we have real decisions
                     api_data['irrigation'] = irrigation_data
+                    print(f"[SUCCESS] Irrigation data collected for {len(irrigation_data)} crops")
+                else:
+                    print(f"[WARNING] No irrigation data collected")
             
             return api_data
             
         except Exception as e:
-            print(f"API data collection error: {str(e)}")
+            print(f"[ERROR] API data collection error: {str(e)}")
             return api_data
     
     async def _process_real_insights(self, query_analysis, collected_data: Dict) -> Dict[str, Any]:
@@ -208,14 +242,22 @@ class IntelligentDataCollector:
         
         try:
             intent = query_analysis.intent
-            api_data = collected_data.get('api_data', {})
-            user_context = collected_data.get('user_context', {})
+            api_data = collected_data.get('api_data', {}) or {}
+            user_context = collected_data.get('user_context', {}) or {}
             
             # Market insights (only if we have real market data)
             if intent in [QueryIntent.MARKET_PRICE, QueryIntent.SELLING_ADVICE, QueryIntent.BUYING_ADVICE]:
                 market_data = api_data.get('market', {})
                 if market_data:
                     insights['market'] = self._analyze_real_market_data(market_data, intent)
+                else:
+                    print(f"[WARNING] No market data available for insights")
+                    insights['market'] = {
+                        'price_comparison': {},
+                        'trend_analysis': {},
+                        'recommendations': ["Market data not available - check API configuration"],
+                        'profit_potential': {}
+                    }
             
             # Irrigation insights (only if we have real irrigation data)
             if intent == QueryIntent.IRRIGATION_ADVICE:
@@ -227,23 +269,47 @@ class IntelligentDataCollector:
                     insights['irrigation'] = self._analyze_real_irrigation_data(
                         irrigation_data, weather_data, irrigation_history
                     )
+                else:
+                    print(f"[WARNING] No irrigation or weather data available for insights")
+                    insights['irrigation'] = {
+                        'immediate_recommendations': ["Irrigation data not available - check sensors and weather API"],
+                        'timing_advice': [],
+                        'water_optimization': [],
+                        'risk_factors': ["Unable to assess irrigation needs without real-time data"]
+                    }
             
             # Weather insights (only if we have real weather data)
             if intent == QueryIntent.WEATHER_INQUIRY:
                 weather_data = api_data.get('weather', {})
                 if weather_data:
                     insights['weather'] = self._analyze_real_weather_data(weather_data)
+                else:
+                    print(f"[WARNING] No weather data available for insights")
+                    insights['weather'] = {
+                        'current_conditions': {},
+                        'forecast_summary': {},
+                        'agricultural_impact': [],
+                        'recommendations': ["Weather data not available - check API configuration"]
+                    }
             
             # Profit optimization insights (only with real data)
             if api_data.get('market') or api_data.get('weather'):
                 insights['profit_optimization'] = self._generate_real_profit_insights(
                     query_analysis, api_data, user_context
                 )
+            else:
+                insights['profit_optimization'] = {
+                    'immediate_actions': [],
+                    'short_term_strategy': [],
+                    'long_term_planning': [],
+                    'risk_mitigation': ["Limited data available for profit optimization"],
+                    'profit_potential': {}
+                }
             
             return insights
             
         except Exception as e:
-            print(f"Insights processing error: {str(e)}")
+            print(f"[ERROR] Insights processing error: {str(e)}")
             return insights
     
     def _analyze_real_market_data(self, market_data: Dict, intent: QueryIntent) -> Dict[str, Any]:
@@ -256,48 +322,67 @@ class IntelligentDataCollector:
         }
         
         try:
+            if not market_data:
+                return insights
+                
             for location, data in market_data.items():
-                prices = data.get('current_prices', [])
-                trends = data.get('price_trends', [])
+                prices = data.get('current_prices', []) or []
+                trends = data.get('price_trends', []) or []
                 
                 # Price comparison across locations
                 for price_info in prices:
-                    crop = price_info['crop']
+                    if not price_info or not isinstance(price_info, dict):
+                        continue
+                        
+                    crop = price_info.get('crop', 'Unknown')
                     if crop not in insights['price_comparison']:
                         insights['price_comparison'][crop] = []
                     
                     insights['price_comparison'][crop].append({
                         'location': location,
-                        'price': price_info['price'],
-                        'unit': price_info['unit'],
-                        'market': price_info['market']
+                        'price': price_info.get('price', 0),
+                        'unit': price_info.get('unit', 'quintal'),
+                        'market': price_info.get('market', 'Unknown')
                     })
                 
                 # Trend analysis
                 for trend_info in trends:
-                    crop = trend_info['crop']
+                    if not trend_info or not isinstance(trend_info, dict):
+                        continue
+                        
+                    crop = trend_info.get('crop', 'Unknown')
                     insights['trend_analysis'][crop] = {
-                        'direction': trend_info['trend'],
-                        'change_percent': trend_info['change_percent'],
-                        'confidence': trend_info['confidence'],
-                        'recommendation': trend_info['recommendation']
+                        'direction': trend_info.get('trend', 'stable'),
+                        'change_percent': trend_info.get('change_percent', 0),
+                        'confidence': trend_info.get('confidence', 0.5),
+                        'recommendation': trend_info.get('recommendation', 'Monitor prices')
                     }
                     
                     # Generate specific recommendations
                     if intent == QueryIntent.SELLING_ADVICE:
-                        if trend_info['trend'] == 'increasing' and trend_info['change_percent'] > 5:
+                        change_percent = trend_info.get('change_percent', 0)
+                        if trend_info.get('trend') == 'increasing' and change_percent > 5:
                             insights['recommendations'].append(
-                                f"Good time to sell {crop} - prices rising by {trend_info['change_percent']:.1f}%"
+                                f"Good time to sell {crop} - prices rising by {change_percent:.1f}%"
                             )
-                        elif trend_info['trend'] == 'decreasing':
+                        elif trend_info.get('trend') == 'decreasing':
                             insights['recommendations'].append(
-                                f"Consider holding {crop} - prices falling by {abs(trend_info['change_percent']):.1f}%"
+                                f"Consider holding {crop} - prices falling by {abs(change_percent):.1f}%"
                             )
+            
+            # Add fallback recommendations if none generated
+            if not insights['recommendations']:
+                if intent == QueryIntent.MARKET_PRICE:
+                    insights['recommendations'].append("Check local mandi prices for most current rates")
+                elif intent == QueryIntent.SELLING_ADVICE:
+                    insights['recommendations'].append("Monitor price trends before making selling decisions")
+                elif intent == QueryIntent.BUYING_ADVICE:
+                    insights['recommendations'].append("Compare prices across different markets")
             
             return insights
             
         except Exception as e:
-            print(f"Market analysis error: {str(e)}")
+            print(f"[ERROR] Market analysis error: {str(e)}")
             return insights
     
     def _analyze_real_irrigation_data(self, irrigation_data: Dict, weather_data: Dict, history: List[Dict]) -> Dict[str, Any]:
@@ -310,12 +395,16 @@ class IntelligentDataCollector:
         }
         
         try:
-            for crop, decision_data in irrigation_data.items():
-                recommendation = decision_data['recommendation']
-                confidence = decision_data['confidence']
-                water_amount = decision_data['water_amount']
-                timing = decision_data['timing']
-                reasoning = decision_data.get('reasoning', [])
+            # Process irrigation data
+            for crop, decision_data in (irrigation_data or {}).items():
+                if not decision_data or not isinstance(decision_data, dict):
+                    continue
+                    
+                recommendation = decision_data.get('recommendation', 'unknown')
+                confidence = decision_data.get('confidence', 0.5)
+                water_amount = decision_data.get('water_amount', 0)
+                timing = decision_data.get('timing', 'unknown')
+                reasoning = decision_data.get('reasoning', []) or []
                 
                 if recommendation == 'urgent':
                     insights['immediate_recommendations'].append(
@@ -335,32 +424,42 @@ class IntelligentDataCollector:
                     )
                 
                 # Add reasoning
-                insights['timing_advice'].extend([f"• {reason}" for reason in reasoning])
+                for reason in reasoning:
+                    if reason and isinstance(reason, str):
+                        insights['timing_advice'].append(f"• {reason}")
             
             # Analyze weather impact if available
-            for location, weather_info in weather_data.items():
-                current = weather_info.get('current', {})
-                forecast = weather_info.get('forecast', [])
+            for location, weather_info in (weather_data or {}).items():
+                if not weather_info or not isinstance(weather_info, dict):
+                    continue
+                    
+                current = weather_info.get('current', {}) or {}
+                forecast = weather_info.get('forecast', []) or []
                 
                 if forecast:
                     # Check for upcoming rain
-                    upcoming_rain = sum(day.get('rainfall', 0) for day in forecast[:3])
+                    upcoming_rain = sum(day.get('rainfall', 0) for day in forecast[:3] if isinstance(day, dict))
                     if upcoming_rain > 10:
                         insights['water_optimization'].append(
                             f"🌧️ Rain expected ({upcoming_rain:.1f}mm in 3 days) - delay irrigation"
                         )
                     
                     # Check for extreme weather
-                    max_temp = max((day.get('temperature', 25) for day in forecast[:3]), default=25)
+                    max_temp = max((day.get('temperature', 25) for day in forecast[:3] if isinstance(day, dict)), default=25)
                     if max_temp > 35:
                         insights['risk_factors'].append(
                             f"🌡️ High temperatures expected ({max_temp}°C) - increase irrigation frequency"
                         )
             
+            # Add fallback recommendations if none generated
+            if not any([insights['immediate_recommendations'], insights['timing_advice'], 
+                       insights['water_optimization']]):
+                insights['timing_advice'].append("Check soil moisture manually and observe plant stress signs")
+            
             return insights
             
         except Exception as e:
-            print(f"Irrigation analysis error: {str(e)}")
+            print(f"[ERROR] Irrigation analysis error: {str(e)}")
             return insights
     
     def _analyze_real_weather_data(self, weather_data: Dict) -> Dict[str, Any]:
@@ -373,10 +472,16 @@ class IntelligentDataCollector:
         }
         
         try:
+            if not weather_data:
+                return insights
+                
             for location, weather_info in weather_data.items():
-                current = weather_info.get('current', {})
-                forecast = weather_info.get('forecast', [])
-                alerts = weather_info.get('alerts', [])
+                if not weather_info or not isinstance(weather_info, dict):
+                    continue
+                    
+                current = weather_info.get('current', {}) or {}
+                forecast = weather_info.get('forecast', []) or []
+                alerts = weather_info.get('alerts', []) or []
                 
                 # Current conditions
                 if current:
@@ -388,29 +493,32 @@ class IntelligentDataCollector:
                     }
                 
                 # Forecast summary
-                if forecast:
-                    avg_temp = sum(day.get('temperature', 25) for day in forecast[:7]) / min(7, len(forecast))
-                    total_rain = sum(day.get('rainfall', 0) for day in forecast[:7])
-                    
-                    insights['forecast_summary'][location] = {
-                        'avg_temperature_7days': round(avg_temp, 1),
-                        'total_rainfall_7days': round(total_rain, 1),
-                        'conditions': forecast[0].get('description', 'Unknown') if forecast else 'Unknown'
-                    }
+                if forecast and len(forecast) > 0:
+                    valid_forecasts = [day for day in forecast if isinstance(day, dict) and day.get('temperature')]
+                    if valid_forecasts:
+                        avg_temp = sum(day.get('temperature', 25) for day in valid_forecasts[:7]) / min(7, len(valid_forecasts))
+                        total_rain = sum(day.get('rainfall', 0) for day in valid_forecasts[:7])
+                        
+                        insights['forecast_summary'][location] = {
+                            'avg_temperature_7days': round(avg_temp, 1),
+                            'total_rainfall_7days': round(total_rain, 1),
+                            'conditions': valid_forecasts[0].get('description', 'Unknown') if valid_forecasts else 'Unknown'
+                        }
                 
                 # Agricultural impact
                 for alert in alerts:
-                    insights['agricultural_impact'].append({
-                        'location': location,
-                        'alert_type': alert['type'],
-                        'message': alert['message'],
-                        'recommendations': alert.get('recommendations', [])
-                    })
+                    if alert and isinstance(alert, dict):
+                        insights['agricultural_impact'].append({
+                            'location': location,
+                            'alert_type': alert.get('type', 'unknown'),
+                            'message': alert.get('message', ''),
+                            'recommendations': alert.get('recommendations', []) or []
+                        })
             
             return insights
             
         except Exception as e:
-            print(f"Weather analysis error: {str(e)}")
+            print(f"[ERROR] Weather analysis error: {str(e)}")
             return insights
     
     def _generate_real_profit_insights(self, query_analysis, api_data: Dict, user_context: Dict) -> Dict[str, Any]:
@@ -425,28 +533,38 @@ class IntelligentDataCollector:
         
         try:
             intent = query_analysis.intent
-            market_data = api_data.get('market', {})
-            weather_data = api_data.get('weather', {})
+            market_data = api_data.get('market', {}) or {}
+            weather_data = api_data.get('weather', {}) or {}
             
             # Selling advice insights (only with real market data)
             if intent == QueryIntent.SELLING_ADVICE and market_data:
                 for location, data in market_data.items():
-                    for price_info in data.get('current_prices', []):
-                        crop = price_info['crop']
-                        current_price = price_info['price']
+                    if not data or not isinstance(data, dict):
+                        continue
+                        
+                    current_prices = data.get('current_prices', []) or []
+                    price_trends = data.get('price_trends', []) or []
+                    
+                    for price_info in current_prices:
+                        if not price_info or not isinstance(price_info, dict):
+                            continue
+                            
+                        crop = price_info.get('crop', 'Unknown')
+                        current_price = price_info.get('price', 0)
                         
                         # Get trend for this crop
-                        trend_data = next(
-                            (t for t in data.get('price_trends', []) if t['crop'] == crop),
-                            None
-                        )
+                        trend_data = None
+                        for trend in price_trends:
+                            if isinstance(trend, dict) and trend.get('crop') == crop:
+                                trend_data = trend
+                                break
                         
                         if trend_data:
-                            change_percent = trend_data['change_percent']
+                            change_percent = trend_data.get('change_percent', 0)
                             
                             if change_percent > 10:
                                 insights['immediate_actions'].append(
-                                    f"🚀 SELL NOW: {crop} prices up {change_percent:.1f}% at ₹{current_price}/{price_info['unit']} in {location}"
+                                    f"🚀 SELL NOW: {crop} prices up {change_percent:.1f}% at ₹{current_price}/{price_info.get('unit', 'quintal')} in {location}"
                                 )
                             elif change_percent > 5:
                                 insights['short_term_strategy'].append(
@@ -458,8 +576,9 @@ class IntelligentDataCollector:
                                 )
                             
                             # Calculate profit potential if we have farm size
-                            if user_context.get('profile', {}).get('farm_size'):
-                                farm_size_str = user_context['profile']['farm_size']
+                            profile = user_context.get('profile', {})
+                            if profile and profile.get('farm_size'):
+                                farm_size_str = str(profile.get('farm_size', 'medium'))
                                 farm_size = 2 if 'small' in farm_size_str else 5 if 'medium' in farm_size_str else 10
                                 estimated_yield = farm_size * 20  # Rough estimate: 20 quintals per acre
                                 potential_revenue = estimated_yield * current_price
@@ -474,17 +593,21 @@ class IntelligentDataCollector:
             # Weather-based profit insights (only with real weather data)
             if weather_data:
                 for location, weather_info in weather_data.items():
-                    forecast = weather_info.get('forecast', [])
+                    if not weather_info or not isinstance(weather_info, dict):
+                        continue
+                        
+                    forecast = weather_info.get('forecast', []) or []
                     if forecast:
                         # Check for favorable conditions
-                        upcoming_rain = sum(day.get('rainfall', 0) for day in forecast[:3])
+                        valid_forecasts = [day for day in forecast if isinstance(day, dict)]
+                        upcoming_rain = sum(day.get('rainfall', 0) for day in valid_forecasts[:3])
                         if upcoming_rain > 20:
                             insights['short_term_strategy'].append(
                                 f"🌧️ Heavy rain expected in {location} - good for crop growth, delay harvest if near maturity"
                             )
                         
                         # Check for adverse conditions
-                        max_temp = max((day.get('temperature', 25) for day in forecast[:3]), default=25)
+                        max_temp = max((day.get('temperature', 25) for day in valid_forecasts[:3]), default=25)
                         if max_temp > 38:
                             insights['risk_mitigation'].append(
                                 f"🌡️ Extreme heat in {location} - protect crops, increase irrigation, consider early harvest"
@@ -493,7 +616,7 @@ class IntelligentDataCollector:
             return insights
             
         except Exception as e:
-            print(f"Profit insights error: {str(e)}")
+            print(f"[ERROR] Profit insights error: {str(e)}")
             return insights
 
 # Global instance

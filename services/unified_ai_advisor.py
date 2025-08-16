@@ -281,7 +281,7 @@ CRITICAL GUIDELINES:
 14. NEVER respond in Hindi or any other language - always use English for generation""")
         
         # Farmer's personal context
-        user_context = collected_data.get('user_context', {})
+        user_context = collected_data.get('user_context', {}) or {}
         if user_context.get('profile'):
             profile = user_context['profile']
             print(f"[INFO] Adding user profile to context")
@@ -294,6 +294,12 @@ YOUR FARMER'S PROFILE:
 - Soil Type: {profile.get('soil_type', 'Unknown')}
 - Irrigation Method: {profile.get('irrigation_type', 'Unknown')}
 - Preferred Language: {profile.get('preferred_language', 'Unknown')}""")
+        else:
+            print(f"[WARNING] No user profile available")
+            prompt_parts.append(f"""
+YOUR FARMER'S PROFILE:
+- Profile: Not available - please ask farmer to complete their profile for personalized advice
+- This limits the personalization of recommendations""")
         
         # Current farming status
         if user_context.get('farming'):
@@ -305,6 +311,8 @@ CURRENT FARMING STATUS:
 - Irrigation Frequency: Every {farming.get('irrigation_frequency', 'Unknown')} days
 - Current Crop Stages: {json.dumps(farming.get('crop_stages', {}), indent=2)}
 - Planting Dates: {json.dumps(farming.get('planting_dates', {}), indent=2)}""")
+        else:
+            print(f"[WARNING] No farming context available")
         
         # Recent conversation history for context
         if user_context.get('irrigation_history'):
@@ -323,7 +331,7 @@ FARMER'S PREFERRED LANGUAGE: {original_language}
 IMPORTANT: Generate your response in English only. Do not use Hindi, Bengali, or any other language in your response. The system will handle translation to the farmer's preferred language ({original_language}) after you generate the response.""")
         
         # Real-time data availability and content
-        api_data = collected_data.get('api_data', {})
+        api_data = collected_data.get('api_data', {}) or {}
         data_available = []
         data_unavailable = []
         
@@ -332,7 +340,9 @@ IMPORTANT: Generate your response in English only. Do not use Hindi, Bengali, or
             data_available.append("Real-time weather data")
             print(f"[INFO] Adding weather data to context")
             prompt_parts.append("\nREAL-TIME WEATHER DATA:")
-            for location, weather_info in api_data['weather'].items():
+            for location, weather_info in (api_data.get('weather', {}) or {}).items():
+                if not weather_info or not isinstance(weather_info, dict):
+                    continue
                 current = weather_info.get('current', {})
                 forecast = weather_info.get('forecast', [])
                 
@@ -342,7 +352,7 @@ IMPORTANT: Generate your response in English only. Do not use Hindi, Bengali, or
                 prompt_parts.append(f"- Wind: {current.get('wind_speed', 'N/A')} m/s")
                 
                 if forecast:
-                    upcoming_rain = sum(day.get('rainfall', 0) for day in forecast[:3])
+                    upcoming_rain = sum(day.get('rainfall', 0) for day in forecast[:3] if isinstance(day, dict))
                     prompt_parts.append(f"- Next 3 days rainfall: {upcoming_rain:.1f}mm")
         else:
             data_unavailable.append("weather data")
@@ -353,12 +363,18 @@ IMPORTANT: Generate your response in English only. Do not use Hindi, Bengali, or
             data_available.append("Real-time market prices")
             print(f"[INFO] Adding market data to context")
             prompt_parts.append("\nREAL-TIME MARKET DATA:")
-            for location, market_info in api_data['market'].items():
+            for location, market_info in (api_data.get('market', {}) or {}).items():
+                if not market_info or not isinstance(market_info, dict):
+                    continue
                 prompt_parts.append(f"\n{location.upper()} MARKET:")
-                for price in market_info.get('current_prices', []):
+                for price in (market_info.get('current_prices', []) or []):
+                    if not price or not isinstance(price, dict):
+                        continue
                     prompt_parts.append(f"- {price['crop']}: ₹{price['price']}/{price['unit']} at {price['market']}")
                 
-                for trend in market_info.get('price_trends', []):
+                for trend in (market_info.get('price_trends', []) or []):
+                    if not trend or not isinstance(trend, dict):
+                        continue
                     direction = "📈" if trend['trend'] == 'increasing' else "📉" if trend['trend'] == 'decreasing' else "➡️"
                     prompt_parts.append(f"- {trend['crop']} trend: {direction} {trend['change_percent']:+.1f}% ({trend['recommendation']})")
         else:
@@ -370,14 +386,17 @@ IMPORTANT: Generate your response in English only. Do not use Hindi, Bengali, or
             data_available.append("Soil moisture and irrigation analysis")
             print(f"[INFO] Adding irrigation data to context")
             prompt_parts.append("\nIRRIGATION ANALYSIS:")
-            for crop, irrigation_info in api_data['irrigation'].items():
+            for crop, irrigation_info in (api_data.get('irrigation', {}) or {}).items():
+                if not irrigation_info or not isinstance(irrigation_info, dict):
+                    continue
                 prompt_parts.append(f"- {crop}: {irrigation_info['recommendation']} ({irrigation_info['water_amount']:.0f}L recommended)")
-                for reason in irrigation_info.get('reasoning', []):
+                for reason in (irrigation_info.get('reasoning', []) or []):
+                    if reason and isinstance(reason, str):
                     prompt_parts.append(f"  • {reason}")
                 
                 # Data availability for irrigation
                 data_avail = irrigation_info.get('data_availability', {})
-                missing_irrigation_data = [k for k, v in data_avail.items() if not v]
+                missing_irrigation_data = [k for k, v in (data_avail or {}).items() if not v]
                 if missing_irrigation_data:
                     prompt_parts.append(f"  • Missing data: {', '.join(missing_irrigation_data)}")
         else:
@@ -385,17 +404,17 @@ IMPORTANT: Generate your response in English only. Do not use Hindi, Bengali, or
             print(f"[WARNING] Irrigation data not available")
         
         # Image analysis
-        if collected_data.get('image_analysis'):
-            img_analysis = collected_data['image_analysis']
+        image_analysis = collected_data.get('image_analysis')
+        if image_analysis and isinstance(image_analysis, dict):
             if not img_analysis.get('error'):
                 data_available.append("Image analysis")
                 print(f"[INFO] Adding image analysis to context")
                 prompt_parts.append(f"""
 IMAGE ANALYSIS RESULTS:
-- Crop Detected: {img_analysis['crop_detected']}
-- Disease/Condition: {img_analysis['disease_detected']}
-- Confidence: {img_analysis['confidence']}
-- Treatment Needed: {img_analysis['treatment']}""")
+- Crop Detected: {image_analysis.get('crop_detected', 'Unknown')}
+- Disease/Condition: {image_analysis.get('disease_detected', 'Unknown')}
+- Confidence: {image_analysis.get('confidence', 'Low')}
+- Treatment Needed: {image_analysis.get('treatment', 'Not available')}""")
             else:
                 data_unavailable.append("image analysis")
                 print(f"[WARNING] Image analysis failed")
@@ -438,26 +457,31 @@ LANGUAGE INSTRUCTION: Generate your entire response in English. Do not include a
         recommendations = []
         
         try:
-            insights = collected_data.get('processed_insights', {})
+            insights = collected_data.get('processed_insights', {}) or {}
             
             # Irrigation recommendations (most actionable)
-            irrigation_insights = insights.get('irrigation', {})
+            irrigation_insights = insights.get('irrigation', {}) or {}
             recommendations.extend(irrigation_insights.get('immediate_recommendations', []))
             recommendations.extend(irrigation_insights.get('timing_advice', []))
             
             # Market recommendations (profit-focused)
-            market_insights = insights.get('market', {})
+            market_insights = insights.get('market', {}) or {}
             recommendations.extend(market_insights.get('recommendations', []))
             
             # Profit optimization (highest priority)
-            profit_insights = insights.get('profit_optimization', {})
+            profit_insights = insights.get('profit_optimization', {}) or {}
             recommendations.extend(profit_insights.get('immediate_actions', []))
             recommendations.extend(profit_insights.get('short_term_strategy', []))
             
             # Weather-based recommendations
-            weather_insights = insights.get('weather', {})
-            for impact in weather_insights.get('agricultural_impact', []):
+            weather_insights = insights.get('weather', {}) or {}
+            for impact in (weather_insights.get('agricultural_impact', []) or []):
+                if not impact or not isinstance(impact, dict):
+                    continue
                 recommendations.extend(impact.get('recommendations', []))
+            
+            # Filter out None or empty recommendations
+            recommendations = [rec for rec in recommendations if rec and isinstance(rec, str)]
             
             return recommendations[:8]  # Limit to top 8 most actionable recommendations
             
@@ -469,18 +493,30 @@ LANGUAGE INSTRUCTION: Generate your entire response in English. Do not include a
         """Extract data sources used in the response"""
         sources = []
         
-        api_data = collected_data.get('api_data', {})
+        try:
+            api_data = collected_data.get('api_data', {}) or {}
+            
+            if api_data.get('market'):
+                sources.append('Real-time Market Prices')
+            if api_data.get('weather'):
+                sources.append('Weather Forecast API')
+            if api_data.get('irrigation'):
+                sources.append('Soil Moisture & Irrigation Analysis')
+            
+            image_analysis = collected_data.get('image_analysis')
+            if image_analysis and isinstance(image_analysis, dict) and not image_analysis.get('error'):
+                sources.append('AI Image Analysis')
+            
+            if collected_data.get('user_context'):
+                sources.append('Your Personal Farming Profile')
+            
+            # Add fallback if no sources
+            if not sources:
+                sources.append('General Agricultural Knowledge')
         
-        if api_data.get('market'):
-            sources.append('Real-time Market Prices')
-        if api_data.get('weather'):
-            sources.append('Weather Forecast API')
-        if api_data.get('irrigation'):
-            sources.append('Soil Moisture & Irrigation Analysis')
-        if collected_data.get('image_analysis') and not collected_data['image_analysis'].get('error'):
-            sources.append('AI Image Analysis')
-        if collected_data.get('user_context'):
-            sources.append('Your Personal Farming Profile')
+        except Exception as e:
+            print(f"[ERROR] Data sources extraction error: {str(e)}")
+            sources = ['General Agricultural Knowledge']
         
         return sources
     
@@ -490,7 +526,7 @@ LANGUAGE INSTRUCTION: Generate your entire response in English. Do not include a
         
         try:
             intent = query_analysis.intent
-            user_context = collected_data.get('user_context', {})
+            user_context = collected_data.get('user_context', {}) or {}
             
             if intent == QueryIntent.IRRIGATION_ADVICE:
                 suggestions.extend([
@@ -514,15 +550,25 @@ LANGUAGE INSTRUCTION: Generate your entire response in English. Do not include a
                 ])
             
             # Add context-specific suggestions
-            if user_context.get('profile', {}).get('primary_crops'):
+            profile = user_context.get('profile', {}) or {}
+            if profile.get('primary_crops'):
                 crops = user_context['profile']['primary_crops']
-                suggestions.append(f"Ask me about specific advice for your {', '.join(crops)} crops")
+                if isinstance(crops, list) and crops:
+                    suggestions.append(f"Ask me about specific advice for your {', '.join(crops)} crops")
+            
+            # Add general suggestions if none generated
+            if not suggestions:
+                suggestions.extend([
+                    "Ask me about irrigation timing for your crops",
+                    "Get current market prices for your area",
+                    "Learn about government schemes you're eligible for"
+                ])
             
             return suggestions[:3]  # Limit to 3 suggestions
             
         except Exception as e:
             print(f"Follow-up generation error: {str(e)}")
-            return []
+            return ["Ask me anything about farming!", "Check market prices", "Get irrigation advice"]
     
     def _calculate_response_confidence(self, query_analysis, collected_data: Dict) -> float:
         """Calculate overall response confidence based on data availability"""
@@ -531,7 +577,7 @@ LANGUAGE INSTRUCTION: Generate your entire response in English. Do not include a
             
             # Boost confidence based on available real data
             data_boost = 0
-            api_data = collected_data.get('api_data', {})
+            api_data = collected_data.get('api_data', {}) or {}
             
             if api_data.get('market'):
                 data_boost += 0.15
@@ -539,9 +585,13 @@ LANGUAGE INSTRUCTION: Generate your entire response in English. Do not include a
                 data_boost += 0.15
             if api_data.get('irrigation'):
                 data_boost += 0.15
-            if collected_data.get('user_context', {}).get('profile'):
+            
+            user_context = collected_data.get('user_context', {}) or {}
+            if user_context.get('profile'):
                 data_boost += 0.20  # Personal context is very valuable
-            if collected_data.get('image_analysis') and not collected_data['image_analysis'].get('error'):
+            
+            image_analysis = collected_data.get('image_analysis')
+            if image_analysis and isinstance(image_analysis, dict) and not image_analysis.get('error'):
                 data_boost += 0.10
             
             return min(0.95, base_confidence + data_boost)
@@ -552,17 +602,32 @@ LANGUAGE INSTRUCTION: Generate your entire response in English. Do not include a
     
     def _track_data_availability(self, collected_data: Dict) -> Dict[str, bool]:
         """Track what data was available for transparency"""
-        api_data = collected_data.get('api_data', {})
+        try:
+            api_data = collected_data.get('api_data', {}) or {}
+            user_context = collected_data.get('user_context', {}) or {}
+            image_analysis = collected_data.get('image_analysis')
+            
+            return {
+                'weather_data': bool(api_data.get('weather')),
+                'market_data': bool(api_data.get('market')),
+                'soil_moisture': bool(api_data.get('irrigation')),
+                'user_profile': bool(user_context.get('profile')),
+                'farming_context': bool(user_context.get('farming')),
+                'image_analysis': bool(image_analysis and isinstance(image_analysis, dict) and not image_analysis.get('error')),
+                'irrigation_history': bool(user_context.get('irrigation_history'))
+            }
         
-        return {
-            'weather_data': bool(api_data.get('weather')),
-            'market_data': bool(api_data.get('market')),
-            'soil_moisture': bool(api_data.get('irrigation')),
-            'user_profile': bool(collected_data.get('user_context', {}).get('profile')),
-            'farming_context': bool(collected_data.get('user_context', {}).get('farming')),
-            'image_analysis': bool(collected_data.get('image_analysis') and not collected_data['image_analysis'].get('error')),
-            'irrigation_history': bool(collected_data.get('user_context', {}).get('irrigation_history'))
-        }
+        except Exception as e:
+            print(f"[ERROR] Data availability tracking error: {str(e)}")
+            return {
+                'weather_data': False,
+                'market_data': False,
+                'soil_moisture': False,
+                'user_profile': False,
+                'farming_context': False,
+                'image_analysis': False,
+                'irrigation_history': False
+            }
     
     async def _store_conversation_memory(self, user_id: str, query_analysis, collected_data: Dict, 
                                        response: Dict, original_query: str):
@@ -593,7 +658,7 @@ LANGUAGE INSTRUCTION: Generate your entire response in English. Do not include a
                 user_id=user_id,
                 topic=topic,
                 query=original_query,
-                response=response['main_response'],
+                response=response.get('main_response', 'Response not available'),
                 context_data=context_data
             )
             
